@@ -1,0 +1,70 @@
+🔧 Tasarım Güncelleme İsteği — Maya Okul Portalı
+
+Replit, mevcut “Okul Meclisi Portalı” projesinin tasarımı zaten çok başarılı. Ancak aşağıdaki değişikliklerle görsel kimliği biraz daha güçlendirelim ve içerik yapısını sadeleştirelim:
+
+1️⃣ Maya Kimliği
+
+Tasarım genel olarak modern ve şık, fakat “Maya” okul kimliği biraz daha vurgulanmalı.
+Öneriler:
+
+Üst kısımda ya da navbar’da “Maya Meclisi” veya “Maya Portalı” gibi bir ibare ekle.
+
+Maya'nın kurumsal renk paletini kullan (mor, kırmızı, beyaz tonları).
+
+Font veya logoda Maya’ya özgü bir detay (ör. “Maya” kelimesi kalın ve renkli) olabilir.
+
+Footer kısmına “© Maya Okulları Öğrenci Meclisi” gibi sade bir imza ekle.
+
+2️⃣ Duyurular & “Blüten” (Instagram sayfası alanı)
+
+Şu anki duyurular sayfası gayet işlevsel.
+
+Ancak Instagram tarzı “bülten” içerikleri (ör. poster, etkinlik, kısa görsel haberler) için ayrı bir sekme veya sayfa oluştur.
+
+Adı: “Blüten” (modern bir bülten sayfası gibi).
+
+Menüde “Duyurular” sekmesinin yanında yer alabilir.
+
+Duyurular kısmında sadece resmi metin tabanlı içerikler kalsın;
+“Blüten” sayfasında ise görsel/vitrin tarzı kısa içerikler yer alsın (ör. ızgara görünümü veya kart dizilimi).
+
+Eğer kolaysa, “Blüten” sayfasına Instagram benzeri kart yapısı ekle (görsel + kısa açıklama + tarih).
+
+3️⃣ Hoş Geldiniz Yazısı
+
+Ana sayfadaki “Hoş geldiniz” yazısı yerleşim olarak garip duruyor.
+Üç alternatiften birini seç:
+
+Yazının fontunu ve hizalamasını düzenle (örneğin ortala, fontu sadeleştir).
+
+Altına kısa bir açıklama ekle: “Maya Meclisi Portalı’na hoş geldiniz.”
+
+Eğer tasarım akışını bozuyorsa, yazıyı tamamen kaldır.
+
+Amaç: İlk izlenim sade, profesyonel ve odaklı olsun.
+
+4️⃣ Diğer Tasarım Notları
+
+Mobil görünümde menü ve başlık hizalamalarına dikkat et (özellikle “Blüten” sekmesi eklendikten sonra).
+
+Eğer arka planda animasyon veya efekt varsa, Maya kimliğini ön plana çıkarmayacaksa sadeleştir.
+
+Genel estetik: Minimal, ferah, okul kurumsallığına uygun.
+
+5️⃣ Özetle
+
+Yapılacaklar:
+
+Maya kimliğini logoda / navbar’da vurgula
+
+Duyurular ve “Blüten” sekmelerini ayır
+
+“Hoş geldiniz” yazısını sadeleştir veya kaldır
+
+Mobil uyumu koru, tasarımı bozmadan düzenle
+
+Bu düzenlemeleri yaparken mevcut kod yapısını bozma, sadece görsel & yapısal dokunuşlar yap.
+Amacımız: Maya markasını vurgulayan, daha profesyonel ve okul ruhuna sahip bir portal.
+
+Bunu Replit AI’ye yapıştır; bu, “neden”, “nasıl” ve “neyin” değişeceğini tamamen açıklar.
+İstersen ek olarak Maya logosunun veya renk kodlarının (#6b1c9e mor, #d61b3c kırmızı, #ffffff beyaz) kullanılmasını da yazabilirim — ister misin o kodlarla da güncelleyeyim?
