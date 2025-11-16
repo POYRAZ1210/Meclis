@@ -52,6 +52,20 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Helper: Get profile ID from user ID
+async function getProfileId(userId: string): Promise<string | null> {
+  const { supabaseAdmin } = await import('./services/supabase');
+  if (!supabaseAdmin) return null;
+  
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
+  
+  return profile?.id || null;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ============================================
@@ -65,9 +79,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req as any).userId;
       
       // Get profile ID from user ID
+      const profileId = await getProfileId(userId);
+      if (!profileId) {
+        return res.status(400).json({ error: "Profile not found" });
+      }
+      
       const announcement = await storage.createAnnouncement({
         ...validated,
-        author_id: userId,
+        author_id: profileId,
       });
       
       res.json(announcement);
@@ -82,9 +101,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertPollSchema.parse(req.body);
       const userId = (req as any).userId;
       
+      // Get profile ID from user ID
+      const profileId = await getProfileId(userId);
+      if (!profileId) {
+        return res.status(400).json({ error: "Profile not found" });
+      }
+      
       const poll = await storage.createPollWithOptions({
         ...validated,
-        created_by: userId,
+        created_by: profileId,
       });
       
       res.json(poll);
@@ -99,9 +124,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertBlutenPostSchema.parse(req.body);
       const userId = (req as any).userId;
       
+      // Get profile ID from user ID
+      const profileId = await getProfileId(userId);
+      if (!profileId) {
+        return res.status(400).json({ error: "Profile not found" });
+      }
+      
       const post = await storage.createManualBlutenPost({
         ...validated,
-        created_by: userId,
+        created_by: profileId,
       });
       
       res.json(post);
