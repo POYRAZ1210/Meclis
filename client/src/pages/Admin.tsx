@@ -29,6 +29,10 @@ import { supabase } from "@/lib/supabase";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
+import AnnouncementForm from "@/components/admin/AnnouncementForm";
+import PollForm from "@/components/admin/PollForm";
+import BlutenForm from "@/components/admin/BlutenForm";
+import UserForm from "@/components/admin/UserForm";
 
 dayjs.extend(relativeTime);
 dayjs.locale("tr");
@@ -186,8 +190,9 @@ export default function Admin() {
 
         <TabsContent value="users">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Kullanıcı Yönetimi</CardTitle>
+              <UserForm />
             </CardHeader>
             <CardContent>
               {loadingProfiles ? (
@@ -238,10 +243,10 @@ export default function Admin() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Duyuru Yönetimi</CardTitle>
-              <Button data-testid="button-add-announcement">Yeni Duyuru Ekle</Button>
+              <AnnouncementForm />
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Duyuru ekleme ve düzenleme işlemleri buradan yapılır.</p>
+              <p className="text-sm text-muted-foreground">Tüm duyuruları buradan yönetebilirsiniz.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -250,10 +255,10 @@ export default function Admin() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Oylama Yönetimi</CardTitle>
-              <Button data-testid="button-add-poll">Yeni Oylama Ekle</Button>
+              <PollForm />
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Oylama oluşturma ve yönetme işlemleri buradan yapılır.</p>
+              <p className="text-sm text-muted-foreground">Tüm oylamaları buradan yönetebilirsiniz.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -262,7 +267,7 @@ export default function Admin() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Blüten Yönetimi ({allBlutenPosts?.length || 0})</CardTitle>
-              <Button data-testid="button-add-bluten">Manuel İçerik Ekle</Button>
+              <BlutenForm />
             </CardHeader>
             <CardContent>
               {loadingBluten ? (

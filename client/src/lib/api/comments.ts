@@ -56,53 +56,47 @@ export async function createComment(ideaId: string, content: string) {
 }
 
 export async function approveComment(commentId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Giriş yapmanız gerekiyor');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  // Get profile id
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+  const res = await fetch(`/api/admin/comments/${commentId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status: 'approved' }),
+  });
 
-  const { data, error } = await supabase
-    .from('comments')
-    .update({
-      status: 'approved',
-      reviewed_by: profile?.id,
-    })
-    .eq('id', commentId)
-    .select()
-    .single();
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum onaylanamadı');
+  }
 
-  if (error) throw error;
-  return data;
+  return res.json();
 }
 
 export async function rejectComment(commentId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Giriş yapmanız gerekiyor');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  // Get profile id
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+  const res = await fetch(`/api/admin/comments/${commentId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status: 'rejected' }),
+  });
 
-  const { data, error } = await supabase
-    .from('comments')
-    .update({
-      status: 'rejected',
-      reviewed_by: profile?.id,
-    })
-    .eq('id', commentId)
-    .select()
-    .single();
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum reddedilemedi');
+  }
 
-  if (error) throw error;
-  return data;
+  return res.json();
 }
 
 export async function deleteComment(commentId: string) {

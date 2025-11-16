@@ -77,20 +77,25 @@ export async function createIdea(title: string, body: string) {
 }
 
 export async function updateIdeaStatus(id: string, status: IdeaStatus) {
-  const updateData: any = { status };
-  if (status === 'approved') {
-    updateData.approved_at = new Date().toISOString();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/ideas/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Fikir durumu güncellenemedi');
   }
 
-  const { data, error } = await supabase
-    .from('ideas')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return res.json();
 }
 
 export async function getIdeaComments(ideaId: string) {
@@ -122,18 +127,23 @@ export async function createIdeaComment(ideaId: string, body: string) {
 }
 
 export async function updateCommentStatus(id: string, status: IdeaStatus) {
-  const updateData: any = { status };
-  if (status === 'approved') {
-    updateData.approved_at = new Date().toISOString();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/comments/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum durumu güncellenemedi');
   }
 
-  const { data, error } = await supabase
-    .from('ideas_comments')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return res.json();
 }
