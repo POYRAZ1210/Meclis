@@ -98,7 +98,7 @@ export default function Dashboard() {
                       title={announcement.title}
                       content={announcement.content}
                       authorName={authorName}
-                      createdAt={dayjs(announcement.created_at).fromNow()}
+                      createdAt={dayjs(announcement.created_at).format('DD MMMM YYYY, HH:mm')}
                       onReadMore={() => console.log("Duyuru detayı:", announcement.id)}
                     />
                   );

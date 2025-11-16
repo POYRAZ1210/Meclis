@@ -18,11 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2 } from "lucide-react";
 import { getProfiles, updateProfile } from "@/lib/api/profiles";
 import { getIdeas, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas";
 import { getAllBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getPendingComments, approveComment, rejectComment } from "@/lib/api/comments";
+import { getAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -58,6 +59,29 @@ export default function Admin() {
   const { data: pendingComments, isLoading: loadingComments } = useQuery({
     queryKey: ["/api/comments", "pending"],
     queryFn: getPendingComments,
+  });
+
+  const { data: announcements, isLoading: loadingAnnouncements } = useQuery({
+    queryKey: ["/api/announcements"],
+    queryFn: getAnnouncements,
+  });
+
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: (announcementId: string) => deleteAnnouncement(announcementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
+      toast({
+        title: "Başarılı",
+        description: "Duyuru silindi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Duyuru silinirken bir hata oluştu",
+      });
+    },
   });
 
   const roleUpdateMutation = useMutation({
@@ -242,11 +266,71 @@ export default function Admin() {
         <TabsContent value="announcements">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Duyuru Yönetimi</CardTitle>
+              <CardTitle>Duyuru Yönetimi ({announcements?.length || 0})</CardTitle>
               <AnnouncementForm />
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Tüm duyuruları buradan yönetebilirsiniz.</p>
+              {loadingAnnouncements ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : announcements && announcements.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Başlık</TableHead>
+                      <TableHead>İçerik</TableHead>
+                      <TableHead>Yazar</TableHead>
+                      <TableHead>Tarih</TableHead>
+                      <TableHead className="text-right">İşlemler</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {announcements.map((announcement) => {
+                      const authorName = announcement.author
+                        ? `${announcement.author.first_name || ""} ${announcement.author.last_name || ""}`.trim() || "Anonim"
+                        : "Yönetici";
+                      
+                      return (
+                        <TableRow key={announcement.id} data-testid={`row-announcement-${announcement.id}`}>
+                          <TableCell className="font-medium max-w-xs">
+                            <p className="truncate">{announcement.title}</p>
+                          </TableCell>
+                          <TableCell className="max-w-md">
+                            <p className="truncate text-muted-foreground">{announcement.content}</p>
+                          </TableCell>
+                          <TableCell className="text-sm">{authorName}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {dayjs(announcement.created_at).format('DD MMMM YYYY, HH:mm')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <AnnouncementForm existingAnnouncement={announcement} />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) {
+                                    deleteAnnouncementMutation.mutate(announcement.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-announcement-${announcement.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12">
+                  <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Henüz duyuru yok</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

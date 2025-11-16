@@ -14,6 +14,8 @@ import type {
 export interface IStorage {
   // Announcements
   createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement>;
+  deleteAnnouncement(id: string): Promise<void>;
   
   // Polls
   createPollWithOptions(data: InsertPoll): Promise<Poll>;
@@ -42,6 +44,31 @@ export class SupabaseStorage implements IStorage {
     
     if (error) throw error;
     return announcement;
+  }
+
+  async updateAnnouncement(id: string, data: Partial<InsertAnnouncement>): Promise<Announcement> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    const { data: announcement, error } = await supabaseAdmin
+      .from('announcements')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return announcement;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    const { error } = await supabaseAdmin
+      .from('announcements')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 
   async createPollWithOptions(data: InsertPoll): Promise<Poll> {

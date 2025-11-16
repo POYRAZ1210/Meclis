@@ -94,6 +94,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Update announcement
+  app.patch('/api/admin/announcements/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validated = insertAnnouncementSchema.partial().parse(req.body);
+      
+      const announcement = await storage.updateAnnouncement(id, validated);
+      
+      res.json(announcement);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete announcement
+  app.delete('/api/admin/announcements/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deleteAnnouncement(id);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
   
   // Create poll with options
   app.post('/api/admin/polls', requireAuth, requireAdmin, async (req: Request, res: Response) => {

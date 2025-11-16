@@ -54,22 +54,41 @@ export async function createAnnouncement(title: string, content: string) {
 }
 
 export async function updateAnnouncement(id: string, title: string, content: string) {
-  const { data, error } = await supabase
-    .from('announcements')
-    .update({ title, content })
-    .eq('id', id)
-    .select()
-    .single();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
-  return data;
+  const res = await fetch(`/api/admin/announcements/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ title, content }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Duyuru güncellenirken hata oluştu');
+  }
+
+  return res.json();
 }
 
 export async function deleteAnnouncement(id: string) {
-  const { error } = await supabase
-    .from('announcements')
-    .delete()
-    .eq('id', id);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
+  const res = await fetch(`/api/admin/announcements/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Duyuru silinirken hata oluştu');
+  }
 }

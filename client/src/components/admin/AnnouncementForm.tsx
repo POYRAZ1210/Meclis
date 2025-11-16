@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -11,46 +11,70 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertAnnouncementSchema, type InsertAnnouncement } from "@shared/schema";
 import { supabase } from "@/lib/supabase";
+import { Pencil } from "lucide-react";
+import { updateAnnouncement } from "@/lib/api/announcements";
 
-export default function AnnouncementForm() {
+interface AnnouncementFormProps {
+  existingAnnouncement?: {
+    id: string;
+    title: string;
+    content: string;
+  };
+}
+
+export default function AnnouncementForm({ existingAnnouncement }: AnnouncementFormProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const isEditMode = !!existingAnnouncement;
 
   const form = useForm<InsertAnnouncement>({
     resolver: zodResolver(insertAnnouncementSchema),
     defaultValues: {
-      title: "",
-      content: "",
+      title: existingAnnouncement?.title || "",
+      content: existingAnnouncement?.content || "",
     },
   });
 
+  useEffect(() => {
+    if (existingAnnouncement) {
+      form.reset({
+        title: existingAnnouncement.title,
+        content: existingAnnouncement.content,
+      });
+    }
+  }, [existingAnnouncement, form]);
+
   const mutation = useMutation({
     mutationFn: async (data: InsertAnnouncement) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      if (isEditMode && existingAnnouncement) {
+        return updateAnnouncement(existingAnnouncement.id, data.title, data.content);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
 
-      const res = await fetch('/api/admin/announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
+        const res = await fetch('/api/admin/announcements', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify(data),
+        });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to create announcement');
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to create announcement');
+        }
+
+        return res.json();
       }
-
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
       toast({
         title: "Başarılı",
-        description: "Duyuru oluşturuldu",
+        description: isEditMode ? "Duyuru güncellendi" : "Duyuru oluşturuldu",
       });
       setOpen(false);
       form.reset();
@@ -59,7 +83,7 @@ export default function AnnouncementForm() {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: error.message || "Duyuru oluşturulamadı",
+        description: error.message || (isEditMode ? "Duyuru güncellenemedi" : "Duyuru oluşturulamadı"),
       });
     },
   });
@@ -67,11 +91,17 @@ export default function AnnouncementForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-testid="button-add-announcement">Yeni Duyuru Ekle</Button>
+        {isEditMode ? (
+          <Button variant="ghost" size="icon" data-testid={`button-edit-announcement-${existingAnnouncement.id}`}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button data-testid="button-add-announcement">Yeni Duyuru Ekle</Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Yeni Duyuru Oluştur</DialogTitle>
+          <DialogTitle>{isEditMode ? "Duyuru Düzenle" : "Yeni Duyuru Oluştur"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
@@ -106,7 +136,9 @@ export default function AnnouncementForm() {
                 İptal
               </Button>
               <Button type="submit" disabled={mutation.isPending} data-testid="button-submit">
-                {mutation.isPending ? "Oluşturuluyor..." : "Oluştur"}
+                {mutation.isPending 
+                  ? (isEditMode ? "Güncelleniyor..." : "Oluşturuluyor...") 
+                  : (isEditMode ? "Güncelle" : "Oluştur")}
               </Button>
             </div>
           </form>
