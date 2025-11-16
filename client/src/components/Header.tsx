@@ -1,4 +1,4 @@
-import { Bell, BarChart3, Lightbulb, Users, Shield, LogOut } from "lucide-react";
+import { Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ export default function Header({
 
   const navItems = [
     { path: "/", label: "Duyurular", icon: Bell },
+    { path: "/bluten", label: "Blüten", icon: Image },
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
     { path: "/siniflar", label: "Sınıflar", icon: Users },
@@ -51,7 +52,12 @@ export default function Header({
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
               <span className="text-lg font-bold text-primary-foreground">🎓</span>
             </div>
-            <span className="text-lg font-bold">Okul Meclisi</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold leading-none">
+                <span className="text-primary">Maya</span> Meclisi
+              </span>
+              <span className="text-xs text-muted-foreground leading-none mt-0.5">Öğrenci Portalı</span>
+            </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

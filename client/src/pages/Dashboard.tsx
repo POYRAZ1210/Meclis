@@ -61,9 +61,11 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Ana Sayfa</h1>
-        <p className="text-muted-foreground">Okul meclisi portalına hoş geldiniz</p>
+      <div className="mb-8 text-center md:text-left">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">
+          <span className="text-primary">Maya Meclisi</span> Portalı'na Hoş Geldiniz
+        </h1>
+        <p className="text-muted-foreground">Öğrenci meclisi haberler, oylamalar ve fikirleriniz için</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

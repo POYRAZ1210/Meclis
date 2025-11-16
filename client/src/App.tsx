@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Dashboard from "@/pages/Dashboard";
 import Announcements from "@/pages/Announcements";
+import Bluten from "@/pages/Bluten";
 import Polls from "@/pages/Polls";
 import Ideas from "@/pages/Ideas";
 import Classes from "@/pages/Classes";
@@ -66,6 +67,11 @@ function Router() {
             <Announcements />
           </ProtectedRoute>
         </Route>
+        <Route path="/bluten">
+          <ProtectedRoute>
+            <Bluten />
+          </ProtectedRoute>
+        </Route>
         <Route path="/oylamalar">
           <ProtectedRoute>
             <Polls />
@@ -89,19 +95,28 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
 
-      <footer className="border-t mt-16">
-        <div className="container mx-auto px-4 lg:px-6 py-6">
+      <footer className="border-t mt-16 bg-card">
+        <div className="container mx-auto px-4 lg:px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              © 2025 Okul Meclisi. Tüm hakları saklıdır.
-            </p>
-            <button
-              className="text-sm text-primary hover:underline"
-              onClick={() => console.log("Tema değiştir")}
-              data-testid="link-theme"
-            >
-              Mor-Kırmızı Tema
-            </button>
+            <div className="text-center md:text-left">
+              <p className="text-sm font-semibold mb-1">
+                <span className="text-primary">Maya</span> Okulları Öğrenci Meclisi
+              </p>
+              <p className="text-xs text-muted-foreground">
+                © {new Date().getFullYear()} Tüm hakları saklıdır.
+              </p>
+            </div>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-primary transition-colors">
+                Gizlilik
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Kullanım Şartları
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                İletişim
+              </a>
+            </div>
           </div>
         </div>
       </footer>
