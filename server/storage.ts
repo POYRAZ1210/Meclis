@@ -19,6 +19,8 @@ export interface IStorage {
   
   // Polls
   createPollWithOptions(data: InsertPoll): Promise<Poll>;
+  deletePoll(id: string): Promise<void>;
+  togglePollStatus(id: string, isOpen: boolean): Promise<Poll>;
   
   // Blüten
   createManualBlutenPost(data: InsertBlutenPost): Promise<BlutenPost>;
@@ -100,6 +102,31 @@ export class SupabaseStorage implements IStorage {
     
     if (optionsError) throw optionsError;
     
+    return poll;
+  }
+
+  async deletePoll(id: string): Promise<void> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    const { error } = await supabaseAdmin
+      .from('polls')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async togglePollStatus(id: string, isOpen: boolean): Promise<Poll> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    const { data: poll, error } = await supabaseAdmin
+      .from('polls')
+      .update({ is_open: isOpen })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
     return poll;
   }
 

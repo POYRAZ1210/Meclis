@@ -144,6 +144,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Delete poll
+  app.delete('/api/admin/polls/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deletePoll(id);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Toggle poll open/close
+  app.patch('/api/admin/polls/:id/status', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { is_open } = req.body;
+      
+      const poll = await storage.togglePollStatus(id, is_open);
+      
+      res.json(poll);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
   
   // Create manual blüten post
   app.post('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {

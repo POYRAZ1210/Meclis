@@ -23,30 +23,82 @@ export interface PollVote {
 }
 
 export async function getPolls() {
-  const { data, error } = await supabase
+  const { data: polls, error } = await supabase
     .from('polls')
     .select(`
       *,
-      options:poll_options(*)
+      options:poll_options(
+        id,
+        poll_id,
+        option_text
+      )
     `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as Poll[];
+
+  // Calculate vote counts for each option
+  const pollsWithVotes = await Promise.all(
+    polls.map(async (poll) => {
+      const optionsWithVotes = await Promise.all(
+        poll.options.map(async (option: any) => {
+          const { count } = await supabase
+            .from('poll_votes')
+            .select('*', { count: 'exact', head: true })
+            .eq('option_id', option.id);
+
+          return {
+            ...option,
+            vote_count: count || 0,
+          };
+        })
+      );
+
+      return {
+        ...poll,
+        options: optionsWithVotes,
+      };
+    })
+  );
+
+  return pollsWithVotes as Poll[];
 }
 
 export async function getPoll(id: string) {
-  const { data, error } = await supabase
+  const { data: poll, error } = await supabase
     .from('polls')
     .select(`
       *,
-      options:poll_options(*)
+      options:poll_options(
+        id,
+        poll_id,
+        option_text
+      )
     `)
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data as Poll;
+
+  // Calculate vote counts for each option
+  const optionsWithVotes = await Promise.all(
+    poll.options.map(async (option: any) => {
+      const { count } = await supabase
+        .from('poll_votes')
+        .select('*', { count: 'exact', head: true })
+        .eq('option_id', option.id);
+
+      return {
+        ...option,
+        vote_count: count || 0,
+      };
+    })
+  );
+
+  return {
+    ...poll,
+    options: optionsWithVotes,
+  } as Poll;
 }
 
 export async function getPollVotes(pollId: string) {
@@ -78,9 +130,13 @@ export async function votePoll(pollId: string, optionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Giriş yapmanız gerekiyor');
 
+  // Upsert allows changing vote
   const { data, error } = await supabase
     .from('poll_votes')
-    .insert([{ poll_id: pollId, option_id: optionId, user_id: user.id }])
+    .upsert(
+      { poll_id: pollId, option_id: optionId, user_id: user.id },
+      { onConflict: 'poll_id,user_id' }
+    )
     .select()
     .single();
 
@@ -124,4 +180,44 @@ export async function closePoll(pollId: string) {
 
   if (error) throw error;
   return data;
+}
+
+export async function deletePoll(id: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/polls/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Oylama silinirken hata oluştu');
+  }
+}
+
+export async function togglePollStatus(id: string, isOpen: boolean) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/polls/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ is_open: isOpen }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Oylama durumu güncellenirken hata oluştu');
+  }
+
+  return res.json();
 }

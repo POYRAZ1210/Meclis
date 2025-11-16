@@ -24,6 +24,7 @@ import { getIdeas, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas
 import { getAllBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getPendingComments, approveComment, rejectComment } from "@/lib/api/comments";
 import { getAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
+import { getPolls, deletePoll, togglePollStatus } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -66,6 +67,11 @@ export default function Admin() {
     queryFn: getAnnouncements,
   });
 
+  const { data: polls, isLoading: loadingPolls } = useQuery({
+    queryKey: ["/api/polls"],
+    queryFn: getPolls,
+  });
+
   const deleteAnnouncementMutation = useMutation({
     mutationFn: (announcementId: string) => deleteAnnouncement(announcementId),
     onSuccess: () => {
@@ -80,6 +86,43 @@ export default function Admin() {
         variant: "destructive",
         title: "Hata",
         description: error.message || "Duyuru silinirken bir hata oluştu",
+      });
+    },
+  });
+
+  const deletePollMutation = useMutation({
+    mutationFn: (pollId: string) => deletePoll(pollId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      toast({
+        title: "Başarılı",
+        description: "Oylama silindi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Oylama silinirken bir hata oluştu",
+      });
+    },
+  });
+
+  const togglePollMutation = useMutation({
+    mutationFn: ({ pollId, isOpen }: { pollId: string; isOpen: boolean }) =>
+      togglePollStatus(pollId, isOpen),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      toast({
+        title: "Başarılı",
+        description: "Oylama durumu güncellendi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Oylama durumu güncellenirken bir hata oluştu",
       });
     },
   });
@@ -338,11 +381,94 @@ export default function Admin() {
         <TabsContent value="polls">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Oylama Yönetimi</CardTitle>
+              <CardTitle>Oylama Yönetimi ({polls?.length || 0})</CardTitle>
               <PollForm />
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Tüm oylamaları buradan yönetebilirsiniz.</p>
+              {loadingPolls ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : polls && polls.length > 0 ? (
+                <div className="space-y-4">
+                  {polls.map((poll) => {
+                    const totalVotes = poll.options?.reduce((sum, opt: any) => sum + (opt.vote_count || 0), 0) || 0;
+                    
+                    return (
+                      <Card key={poll.id} data-testid={`card-poll-${poll.id}`}>
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg mb-2">{poll.question}</CardTitle>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>{poll.is_open ? '🟢 Açık' : '🔴 Kapalı'}</span>
+                                <span>👥 {totalVotes} oy</span>
+                                <span>{dayjs(poll.created_at).format('DD MMMM YYYY')}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => togglePollMutation.mutate({ 
+                                  pollId: poll.id, 
+                                  isOpen: !poll.is_open 
+                                })}
+                                data-testid={`button-toggle-poll-${poll.id}`}
+                              >
+                                {poll.is_open ? 'Kapat' : 'Aç'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Bu oylamayı silmek istediğinize emin misiniz?')) {
+                                    deletePollMutation.mutate(poll.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-poll-${poll.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {poll.options?.map((option: any) => {
+                              const percentage = totalVotes > 0 
+                                ? Math.round((option.vote_count / totalVotes) * 100) 
+                                : 0;
+                              
+                              return (
+                                <div key={option.id} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span>{option.option_text}</span>
+                                    <span className="text-muted-foreground">
+                                      {option.vote_count} oy ({percentage}%)
+                                    </span>
+                                  </div>
+                                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-primary transition-all" 
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Henüz oylama yok</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
