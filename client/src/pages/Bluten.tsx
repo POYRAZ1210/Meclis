@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Plus, Image as ImageIcon, Loader2, Instagram, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import EmptyState from "@/components/EmptyState";
+import { getBlutenPosts, type BlutenPost } from "@/lib/api/bluten";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -11,29 +12,13 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 dayjs.locale("tr");
 
-interface BlutenPost {
-  id: string;
-  title: string;
-  description: string;
-  image_url?: string;
-  created_at: string;
-  author: {
-    first_name: string | null;
-    last_name: string | null;
-  };
-}
-
 export default function Bluten() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
 
-  // TODO: Implement API integration when backend is ready
   const { data: posts, isLoading } = useQuery({
     queryKey: ["/api/bluten"],
-    queryFn: async (): Promise<BlutenPost[]> => {
-      // Mock data for now
-      return [];
-    },
+    queryFn: getBlutenPosts,
   });
 
   return (
@@ -64,40 +49,48 @@ export default function Bluten() {
         </div>
       ) : posts && posts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post) => {
-            const authorName = post.author
-              ? `${post.author.first_name || ""} ${post.author.last_name || ""}`.trim()
-              : "Maya Meclisi";
-
-            return (
-              <Card key={post.id} className="overflow-hidden hover-elevate">
-                {post.image_url && (
-                  <div className="aspect-square bg-muted relative overflow-hidden">
-                    <img
-                      src={post.image_url}
-                      alt={post.title}
-                      className="object-cover w-full h-full"
-                    />
+          {posts.map((post) => (
+            <Card key={post.id} className="overflow-hidden hover-elevate group">
+              {post.media_url && (
+                <div className="aspect-square bg-muted relative overflow-hidden">
+                  <img
+                    src={post.media_url}
+                    alt={post.caption || "Instagram post"}
+                    className="object-cover w-full h-full"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <a
+                      href={post.instagram_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <Instagram className="h-4 w-4" />
+                      <span className="text-sm font-medium">Instagram'da Aç</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </div>
-                )}
-                {!post.image_url && (
-                  <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                    <ImageIcon className="h-16 w-16 text-primary/30" />
-                  </div>
-                )}
+                </div>
+              )}
+              {!post.media_url && (
+                <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                  <ImageIcon className="h-16 w-16 text-primary/30" />
+                </div>
+              )}
+              {post.caption && (
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">{post.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {post.description}
-                  </p>
+                  <p className="text-sm line-clamp-3">{post.caption}</p>
                 </CardContent>
-                <CardFooter className="p-4 pt-0 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{authorName}</span>
-                  <span>{dayjs(post.created_at).fromNow()}</span>
-                </CardFooter>
-              </Card>
-            );
-          })}
+              )}
+              <CardFooter className="p-4 pt-0 flex items-center justify-between text-xs text-muted-foreground gap-2">
+                <div className="flex items-center gap-2">
+                  <Instagram className="h-3 w-3" />
+                  <span>{post.username || "Maya Meclisi"}</span>
+                </div>
+                <span>{post.posted_at ? dayjs(post.posted_at).fromNow() : dayjs(post.fetched_at).fromNow()}</span>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       ) : (
         <EmptyState

@@ -1,0 +1,159 @@
+🚀 1) Blüten Sayfası (Instagram Otomatik Post Çekme)
+
+Bu bölüm çok kritik.
+Blüten sayfası, Maya Meclis’in Instagram hesabına yeni bir gönderi atıldığında onu otomatik olarak siteye ekleyecek.
+
+❗ Kurallar:
+
+Eski gönderiler çekilmeyecek.
+→ Sistem bugün itibarıyla sadece yeni gönderileri alacak.
+
+Instagram’da yeni post çıktığında:
+
+Görsel veya video URL’si
+
+Başlık (caption)
+
+Paylaşım tarihi
+Otomatik olarak alınacak ve Blüten sayfasına eklenecek.
+
+📌 Nasıl çalışmalı:
+
+Instagram API veya oEmbed API resmi şekilde kullanılacak (TOS ihlali yok).
+
+Backend’de bir cron job veya interval task olacak:
+
+Her 10–15 dakikada bir Instagram hesabını kontrol edecek.
+
+En son çekilen postun ID'sini veritabanında saklayacak.
+
+Eğer yeni bir gönderi varsa → Supabase’e kaydedecek.
+
+📌 Veritabanı (Supabase):
+
+bluten_posts adında yeni bir tablo oluşturulacak.
+
+id (uuid)	instagram_post_id	media_url	caption	created_at
+📌 Blüten Sayfası UI:
+
+Grid görünüm:
+
+Desktop: 3 sütun
+
+Tablet: 2 sütun
+
+Mobil: 1 sütun
+
+Kart tasarımı:
+
+Üstte görsel/video
+
+Altta caption (ilk 3 satır)
+
+Sağ altta “Instagram’da aç” linki
+
+Maya renk paleti (Mor–Kırmızı) ile uyumlu
+
+Hover’da minimal animasyon
+
+🛠 2) Admin Paneli (Eksiksiz Yönetim Paneli)
+
+Portal tam bir yönetim paneli içermeli.
+
+Admin panelinde şu özellikler olmalı:
+A) Duyuru Yönetimi
+
+Duyuru ekleme
+
+Duyuru silme
+
+Duyuru düzenleme
+
+Listeleme
+
+B) Blüten Yönetimi
+
+Otomatik gelen Instagram gönderilerinin listesi
+
+Admin isterse:
+
+Yayından kaldır (soft delete)
+
+Düzenle (caption değiştirilebilir)
+
+Manuel ekleme (foto ve açıklama ile)
+
+C) Fikir Sistemi Yönetimi
+
+Öğrenciler fikir paylaşacak → Admin onayladıktan sonra yayınlanacak.
+
+Admin panelinde:
+
+Yeni fikir başvurularını listele
+
+“Onayla” butonu
+
+“Reddet” butonu
+
+Yayına alınan fikirleri görüntüle
+
+D) Yorum Yönetimi
+
+Her fikirde yorum özelliği olacak.
+
+Admin panelinde:
+
+Gelen yorumları listele
+
+Onay bekleyen yorumlar
+
+Onayla → sitede herkes görür
+
+Silme seçeneği
+
+🧠 3) Kullanıcı Sistemi / Yetkilendirme (Supabase Auth)
+
+Supabase Auth kullanılacak.
+
+Roller:
+
+admin
+
+student
+
+Admin paneline sadece role = admin olan kullanıcılar erişebilecek.
+
+Supabase'te bir profiles tablosu olacak:
+
+user_id	first_name	last_name	class_name	role
+
+Giriş yaptıktan sonra session ile kullanıcı rolü kontrol edilecek.
+
+🎨 4) Tasarım Talimatları
+Portalın genel teması:
+
+Dark theme
+
+Maya Okulları renk paleti:
+
+Mor (#6A0DAD)
+
+Kırmızı (#D7263D)
+
+Butonlar yuvarlatılmış
+
+Modern, jüriyi etkileyen bir görünüm
+
+Navbar:
+
+Duyurular | Oylamalar | Blüten | Fikirler | Admin Paneli
+
+📌 5) Ek Notlar
+● Başka sayfalara dokunabilirsin, düzenleyebilirsin.
+● Kod yapısı temiz, component bazlı, düzenli olmalı.
+● API anahtarları .env içinde saklanacak.
+● Instagram sistemi %100 otomatik çalışacak.
+● Her özellik backend destekli olacak (Supabase).
+🔥 6) ÖZET (Replit’in anlaması için tek paragraf)
+
+Maya Meclis portalına “Blüten” adında otomatik Instagram post akışı sayfası ekle. Instagram hesabına yeni gönderi geldiğinde bunu API ile çekip Supabase’e kaydeden otomatik cron görevi yaz. Eski gönderileri çekme, sadece yenileri. Admin paneli tamamen yeniden oluşturulacak ve duyuru, Blüten gönderileri, fikir onaylama, yorum onaylama gibi tüm yönetim özelliklerini içerecek. Tasarım dark tema + Maya renkleriyle modern olacak. Tüm auth ve veri Supabase üzerinde çalışacak.
