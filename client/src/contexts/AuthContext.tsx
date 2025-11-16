@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { translateSupabaseError } from '@/lib/errors/supabase';
 
 interface Profile {
   id: string;
@@ -134,15 +135,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
           }
           throw error;
-        } finally {
-          // Only delete this promise from the map if it's still the same instance
-          if (loadProfilePromisesRef.current.get(userId) === promise) {
-            loadProfilePromisesRef.current.delete(userId);
-          }
         }
       })();
 
       loadProfilePromisesRef.current.set(userId, promise);
+      
+      // Clean up promise from map after it completes (success or failure)
+      promise.finally(() => {
+        if (loadProfilePromisesRef.current.get(userId) === promise) {
+          loadProfilePromisesRef.current.delete(userId);
+        }
+      });
+      
       return promise;
     }
 
@@ -155,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
-    if (error) throw error;
+    if (error) throw translateSupabaseError(error, 'login');
   }
 
   async function signUp(email: string, password: string) {
@@ -163,14 +167,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
-    if (error) throw error;
+    if (error) throw translateSupabaseError(error, 'register');
     
     // Profile will be created automatically by the database trigger
     // loadProfile will retry until it exists or max retries exceeded
     if (data.user) {
-      const loadedProfile = await loadProfile(data.user.id);
-      if (!loadedProfile) {
-        throw new Error('Profil oluşturulamadı. Lütfen sayfayı yenileyin veya destek ekibiyle iletişime geçin.');
+      try {
+        const loadedProfile = await loadProfile(data.user.id);
+        if (!loadedProfile) {
+          throw translateSupabaseError(
+            new Error('Profile not found after retries'),
+            'profile'
+          );
+        }
+      } catch (err) {
+        throw translateSupabaseError(err, 'profile');
       }
     }
   }

@@ -7,12 +7,13 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-export default function Login() {
+export default function Register() {
   const [, setLocation] = useLocation();
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,20 +30,38 @@ export default function Login() {
       return;
     }
     
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Şifreler eşleşmiyor",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Şifre en az 6 karakter olmalıdır",
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
-      await signIn(email, password);
+      await signUp(email, password);
       toast({
         title: "Başarılı",
-        description: "Giriş yapıldı, yönlendiriliyorsunuz...",
+        description: "Kayıt tamamlandı! Giriş yapabilirsiniz.",
       });
       setLocation("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: error.message || "Giriş yapılırken bir hata oluştu",
+        description: error.message || "Kayıt sırasında bir hata oluştu",
       });
     } finally {
       setLoading(false);
@@ -60,7 +79,7 @@ export default function Login() {
           </div>
           <CardTitle className="text-2xl text-center">Okul Meclisi</CardTitle>
           <CardDescription className="text-center">
-            Hesabınıza giriş yapın
+            Yeni hesap oluşturun
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit} noValidate>
@@ -74,7 +93,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                data-testid="input-email"
+                data-testid="input-register-email"
               />
             </div>
             <div className="space-y-2">
@@ -85,22 +104,37 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                data-testid="input-password"
+                minLength={6}
+                data-testid="input-register-password"
+              />
+              <p className="text-xs text-muted-foreground">En az 6 karakter</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Şifre Tekrar</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                data-testid="input-register-confirm-password"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
-              {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+            <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-register">
+              {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Henüz hesabınız yok mu?{" "}
+              Zaten hesabınız var mı?{" "}
               <button
+                type="button"
                 className="text-primary hover:underline"
-                onClick={() => setLocation("/kayit")}
-                data-testid="link-register"
+                onClick={() => setLocation("/giris")}
+                data-testid="link-login"
               >
-                Kayıt Ol
+                Giriş Yap
               </button>
             </p>
           </CardFooter>

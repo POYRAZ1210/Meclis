@@ -13,6 +13,7 @@ import Ideas from "@/pages/Ideas";
 import Classes from "@/pages/Classes";
 import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -54,6 +55,7 @@ function Router() {
       
       <Switch>
         <Route path="/giris" component={Login} />
+        <Route path="/kayit" component={Register} />
         <Route path="/">
           <ProtectedRoute>
             <Dashboard />
