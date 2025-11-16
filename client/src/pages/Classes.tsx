@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,35 +17,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Loader2 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
-
-//todo: remove mock functionality
-const mockStudents = [
-  { id: "1", firstName: "Ahmet", lastName: "Yılmaz", studentNo: "101", className: "9-A", gender: "Erkek" },
-  { id: "2", firstName: "Ayşe", lastName: "Demir", studentNo: "102", className: "9-A", gender: "Kız" },
-  { id: "3", firstName: "Mehmet", lastName: "Kaya", studentNo: "103", className: "9-A", gender: "Erkek" },
-  { id: "4", firstName: "Zeynep", lastName: "Çelik", studentNo: "104", className: "9-B", gender: "Kız" },
-  { id: "5", firstName: "Ali", lastName: "Şahin", studentNo: "105", className: "9-B", gender: "Erkek" },
-  { id: "6", firstName: "Fatma", lastName: "Arslan", studentNo: "201", className: "10-A", gender: "Kız" },
-  { id: "7", firstName: "Mustafa", lastName: "Öztürk", studentNo: "202", className: "10-A", gender: "Erkek" },
-  { id: "8", firstName: "Elif", lastName: "Yıldız", studentNo: "203", className: "10-B", gender: "Kız" },
-];
-
-const classNames = ["Tümü", "9-A", "9-B", "10-A", "10-B"];
+import { getProfiles, getClassNames } from "@/lib/api/profiles";
 
 export default function Classes() {
   const [selectedClass, setSelectedClass] = useState("Tümü");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredStudents = mockStudents.filter((student) => {
-    const matchesClass = selectedClass === "Tümü" || student.className === selectedClass;
-    const matchesSearch =
-      student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.studentNo.includes(searchQuery);
-    return matchesClass && matchesSearch;
+  const { data: profiles, isLoading: loadingProfiles } = useQuery({
+    queryKey: ["/api/profiles", selectedClass],
+    queryFn: () => getProfiles(selectedClass),
   });
+
+  const { data: classNamesData, isLoading: loadingClassNames } = useQuery({
+    queryKey: ["/api/class-names"],
+    queryFn: getClassNames,
+  });
+
+  const classNames = ["Tümü", ...(classNamesData || [])];
+
+  const filteredStudents = profiles?.filter((profile) => {
+    const matchesSearch =
+      profile.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      profile.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      profile.student_no?.includes(searchQuery);
+    return matchesSearch;
+  }) || [];
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
@@ -100,7 +99,13 @@ export default function Classes() {
         </div>
 
         <div className="lg:col-span-3">
-          {filteredStudents.length > 0 ? (
+          {loadingProfiles ? (
+            <Card>
+              <CardContent className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </CardContent>
+            </Card>
+          ) : filteredStudents.length > 0 ? (
             <Card>
               <CardContent className="p-0">
                 <Table>
@@ -115,12 +120,12 @@ export default function Classes() {
                   <TableBody>
                     {filteredStudents.map((student) => (
                       <TableRow key={student.id} data-testid={`row-student-${student.id}`}>
-                        <TableCell className="font-medium">{student.studentNo}</TableCell>
+                        <TableCell className="font-medium">{student.student_no || "-"}</TableCell>
                         <TableCell>
-                          {student.firstName} {student.lastName}
+                          {student.first_name} {student.last_name}
                         </TableCell>
-                        <TableCell>{student.className}</TableCell>
-                        <TableCell>{student.gender}</TableCell>
+                        <TableCell>{student.class_name || "-"}</TableCell>
+                        <TableCell>{student.gender || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

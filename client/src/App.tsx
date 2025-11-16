@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Dashboard from "@/pages/Dashboard";
 import Announcements from "@/pages/Announcements";
@@ -16,15 +16,30 @@ import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  //todo: remove mock functionality - replace with actual auth
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole] = useState<"admin" | "teacher" | "student">("admin");
-  const [userName] = useState("Ahmet Yılmaz");
+  const { user, profile, signOut, loading } = useAuth();
+  const [, setLocation] = useLocation();
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    console.log("Çıkış yapıldı");
+  const handleLogout = async () => {
+    await signOut();
+    setLocation("/giris");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isAuthenticated = !!user;
+  const userRole = profile?.role || "student";
+  const userName = profile?.first_name && profile?.last_name 
+    ? `${profile.first_name} ${profile.last_name}`
+    : user?.email || "Kullanıcı";
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,13 +53,37 @@ function Router() {
       )}
       
       <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/duyurular" component={Announcements} />
-        <Route path="/oylamalar" component={Polls} />
-        <Route path="/fikirler" component={Ideas} />
-        <Route path="/siniflar" component={Classes} />
-        <Route path="/yonetici" component={Admin} />
         <Route path="/giris" component={Login} />
+        <Route path="/">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/duyurular">
+          <ProtectedRoute>
+            <Announcements />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/oylamalar">
+          <ProtectedRoute>
+            <Polls />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/fikirler">
+          <ProtectedRoute>
+            <Ideas />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/siniflar">
+          <ProtectedRoute>
+            <Classes />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/yonetici">
+          <ProtectedRoute requireAdmin={true}>
+            <Admin />
+          </ProtectedRoute>
+        </Route>
         <Route component={NotFound} />
       </Switch>
 
@@ -71,10 +110,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

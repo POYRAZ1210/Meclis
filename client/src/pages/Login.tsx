@@ -4,16 +4,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const { signIn } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Giriş yapılıyor:", { email, password });
-    setLocation("/");
+    setLoading(true);
+    
+    try {
+      await signIn(email, password);
+      toast({
+        title: "Başarılı",
+        description: "Giriş yapıldı, yönlendiriliyorsunuz...",
+      });
+      setLocation("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Giriş yapılırken bir hata oluştu",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,8 +78,8 @@ export default function Login() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" data-testid="button-submit-login">
-              Giriş Yap
+            <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
+              {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
               Henüz hesabınız yok mu?{" "}

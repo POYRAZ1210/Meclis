@@ -204,8 +204,7 @@ function PollDisplay({ poll, onVote }: { poll: any; onVote: any }) {
   }, {}) || {};
 
   const optionsWithVotes = poll.options?.map((opt: any) => ({
-    id: opt.id,
-    text: opt.option_text,
+    ...opt,
     votes: voteCounts[opt.id] || 0,
   })) || [];
 

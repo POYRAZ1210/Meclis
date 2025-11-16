@@ -1,63 +1,31 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import IdeaCard from "@/components/IdeaCard";
 import EmptyState from "@/components/EmptyState";
-import { Lightbulb, Plus, Search } from "lucide-react";
+import { Lightbulb, Plus, Search, Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { getIdeas } from "@/lib/api/ideas";
+import dayjs from "dayjs";
+import "dayjs/locale/tr";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-//todo: remove mock functionality
-const mockIdeas = [
-  {
-    id: "1",
-    title: "Okul Bahçesine Daha Fazla Oturma Alanı",
-    excerpt: "Teneffüslerde oturacak yer bulamıyoruz. Bahçeye daha fazla bank ve oturma alanı eklenebilir mi?",
-    authorName: "Zeynep Kaya",
-    authorInitials: "ZK",
-    createdAt: "8 Mayıs 2025",
-    status: "approved" as const,
-    commentCount: 12,
-  },
-  {
-    id: "2",
-    title: "Dijital Kütüphane Sistemi",
-    excerpt: "E-kitap okumak için dijital bir kütüphane sistemi kurulmasını öneriyorum. Öğrenciler evden de erişebilsin.",
-    authorName: "Ali Demir",
-    authorInitials: "AD",
-    createdAt: "7 Mayıs 2025",
-    status: "approved" as const,
-    commentCount: 5,
-  },
-  {
-    id: "3",
-    title: "Geri Dönüşüm Projeleri",
-    excerpt: "Okulumuzda geri dönüşüm bilincini artırmak için projeler düzenlenebilir. Atık toplama ve ayrıştırma sistemleri kurulabilir.",
-    authorName: "Mehmet Yıldız",
-    authorInitials: "MY",
-    createdAt: "6 Mayıs 2025",
-    status: "approved" as const,
-    commentCount: 18,
-  },
-  {
-    id: "4",
-    title: "Haftalık Film Gösterimleri",
-    excerpt: "Her hafta cuma günleri sinema salonunda eğitici film gösterimleri yapılabilir.",
-    authorName: "Ayşe Çelik",
-    authorInitials: "AÇ",
-    createdAt: "5 Mayıs 2025",
-    status: "pending" as const,
-    commentCount: 3,
-  },
-];
+dayjs.extend(relativeTime);
+dayjs.locale("tr");
 
 export default function Ideas() {
-  const [ideas] = useState(mockIdeas);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredIdeas = ideas.filter((idea) =>
+  const { data: ideas, isLoading } = useQuery({
+    queryKey: ["/api/ideas", "approved"],
+    queryFn: () => getIdeas("approved"),
+  });
+
+  const filteredIdeas = ideas?.filter((idea) =>
     idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    idea.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    idea.body.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
@@ -87,15 +55,36 @@ export default function Ideas() {
         </div>
       </div>
 
-      {filteredIdeas.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredIdeas.length > 0 ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredIdeas.map((idea) => (
-            <IdeaCard
-              key={idea.id}
-              {...idea}
-              onReadMore={() => console.log("Fikir detayı:", idea.id)}
-            />
-          ))}
+          {filteredIdeas.map((idea) => {
+            const authorName = idea.author
+              ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
+              : "Anonim";
+            const initials = authorName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return (
+              <IdeaCard
+                key={idea.id}
+                title={idea.title}
+                excerpt={idea.body.substring(0, 150)}
+                authorName={authorName}
+                authorInitials={initials}
+                createdAt={dayjs(idea.created_at).fromNow()}
+                status={idea.status}
+                commentCount={0}
+                onReadMore={() => console.log("Fikir detayı:", idea.id)}
+              />
+            );
+          })}
         </div>
       ) : (
         <EmptyState
