@@ -1,0 +1,410 @@
+PROJE BRIEF — “Okul Meclisi Portalı (Replit + Next.js + Supabase)”
+0) Amaç
+
+Okul içi duyuru, oylama (polls), modere edilen fikir/blog ve sınıf bazlı öğrenci listesi yönetimi yapan, mobil uyumlu, hızlı, şık, Türkçe bir portal.
+
+Roller: admin, teacher (opsiyonel), student.
+
+Moderasyon şart: Blog/fikir yazıları ve yorumları yayına çıkmadan önce admin onayı alacak.
+
+Kimlik doğrulama: Supabase Auth (Email+Şifre). RLS aktif. Yalnızca kendi profilini gören öğrenci; yönetici her şeyi görebilir.
+
+Hedef: Replit üzerinde tek tıkla çalışır, çevik, üretime alınabilir bir repo.
+
+1) Stack ve Çalışma Ortamı
+
+Next.js 15 (App Router), TypeScript, TailwindCSS, shadcn/ui (Button, Card, Dialog, Badge, Table vb.), lucide-react ikonlar.
+
+Supabase: Auth + Postgres + RLS.
+
+State: Minimal (React server components + form actions), client comp. gerekirse use client.
+
+ESLint/Prettier açık, strict.
+
+Dil: TR. Tarih/saat için dayjs.
+
+Replit ayarı:
+
+.replit:
+
+run = "npm run dev"
+
+
+replit.nix: nodejs 20+, pnpm 9+ (istersen npm).
+
+Scriptler:
+
+{
+  "scripts": {
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:seed": "tsx scripts/seed.ts"
+  }
+}
+
+2) Ortam Değerleri (Replit Secrets / .env)
+
+Aşağıdaki isimlerle zorunlu:
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=      # yalnızca server actions & route handlers içinde
+
+
+Replit secrets ekranına koy; client tarafında sadece NEXT_PUBLIC_* kullan.
+
+Service role key’i client’a asla sızdırma.
+
+3) Veritabanı Şeması (Supabase SQL)
+
+Tek seferde çalıştırılacak SQL – RLS güvenli:
+
+-- EXTENSIONS
+create extension if not exists "uuid-ossp";
+create extension if not exists pgcrypto;
+
+-- PROFILES
+create table if not exists public.profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid unique not null references auth.users(id) on delete cascade,
+  first_name text,
+  last_name text,
+  role text check (role in ('admin','teacher','student')) not null default 'student',
+  class_name text,             -- ör: '10-A'
+  student_no text,             -- ör: '121'
+  gender text,
+  created_at timestamptz default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "profiles_select_own_or_admin"
+on public.profiles for select
+using (
+  auth.role() = 'service_role'
+  OR auth.uid() = user_id
+  OR exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+);
+
+create policy "profiles_update_self_or_admin"
+on public.profiles for update
+using (
+  auth.role() = 'service_role'
+  OR auth.uid() = user_id
+  OR exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.role = 'admin')
+);
+
+-- ANNOUNCEMENTS
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  content text not null,
+  author_id uuid not null references public.profiles(user_id) on delete restrict,
+  created_at timestamptz default now()
+);
+
+alter table public.announcements enable row level security;
+
+create policy "ann_select_all" on public.announcements
+for select using (true);
+
+create policy "ann_insert_admin_only" on public.announcements
+for insert with check (
+  exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin')
+);
+
+create policy "ann_update_delete_admin_only" on public.announcements
+for update using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'))
+for delete using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+-- POLLS
+create table if not exists public.polls (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  created_by uuid not null references public.profiles(user_id) on delete restrict,
+  is_open boolean default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.poll_options (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.polls(id) on delete cascade,
+  option_text text not null
+);
+
+create table if not exists public.poll_votes (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.polls(id) on delete cascade,
+  option_id uuid not null references public.poll_options(id) on delete cascade,
+  user_id uuid not null references public.profiles(user_id) on delete cascade,
+  created_at timestamptz default now(),
+  unique (poll_id, user_id)
+);
+
+alter table public.polls enable row level security;
+alter table public.poll_options enable row level security;
+alter table public.poll_votes enable row level security;
+
+create policy "polls_select_all" on public.polls for select using (true);
+create policy "polls_insert_admin_only" on public.polls for insert
+with check (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+create policy "polls_update_delete_admin_only" on public.polls
+for update using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'))
+for delete using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+create policy "poll_options_select_all" on public.poll_options for select using (true);
+create policy "poll_options_admin_write" on public.poll_options
+for insert with check (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'))
+for update using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'))
+for delete using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+create policy "poll_votes_select_self_or_admin" on public.poll_votes
+for select using (auth.uid() = user_id OR exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+create policy "poll_votes_insert_only_open" on public.poll_votes
+for insert with check (
+  exists (select 1 from public.polls po where po.id = poll_id and po.is_open = true)
+  AND auth.uid() = user_id
+);
+create policy "poll_votes_no_update" on public.poll_votes for update using (false);
+create policy "poll_votes_delete_self_or_admin" on public.poll_votes
+for delete using (auth.uid() = user_id OR exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+-- BLOG / FİKİR (moderated)
+create table if not exists public.ideas (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  author_id uuid not null references public.profiles(user_id) on delete restrict,
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  created_at timestamptz default now(),
+  approved_at timestamptz
+);
+
+create table if not exists public.ideas_comments (
+  id uuid primary key default gen_random_uuid(),
+  idea_id uuid not null references public.ideas(id) on delete cascade,
+  author_id uuid not null references public.profiles(user_id) on delete restrict,
+  body text not null,
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  created_at timestamptz default now(),
+  approved_at timestamptz
+);
+
+alter table public.ideas enable row level security;
+alter table public.ideas_comments enable row level security;
+
+-- Ideas: herkes yayınlanmışı görebilir, oluşturabilir; onay süreci admin
+create policy "ideas_select_visible" on public.ideas
+for select using (status='approved' OR exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin') OR author_id=auth.uid());
+create policy "ideas_insert_any_authed" on public.ideas
+for insert with check (auth.uid() is not null);
+create policy "ideas_update_admin_only" on public.ideas
+for update using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+create policy "ideas_delete_admin_only" on public.ideas
+for delete using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+-- Comments benzer
+create policy "icomments_select_visible" on public.ideas_comments
+for select using (
+  status='approved'
+  OR exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin')
+  OR author_id=auth.uid()
+);
+create policy "icomments_insert_any_authed" on public.ideas_comments
+for insert with check (auth.uid() is not null);
+create policy "icomments_update_admin_only" on public.ideas_comments
+for update using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+create policy "icomments_delete_admin_only" on public.ideas_comments
+for delete using (exists (select 1 from public.profiles p where p.user_id=auth.uid() and p.role='admin'));
+
+
+Not: author_id referansları profiles.user_id’ye bağlıdır; önce auth.users oluşmalı, sonra profile.
+
+4) Kimlik Doğrulama ve “Auto-create Profile” Trigger
+
+Supabase Auth ile kullanıcı oluşturulunca boş profil otomatik açılsın.
+
+SQL Trigger:
+
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (user_id, role)
+  values (new.id, 'student');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute procedure public.handle_new_user();
+
+5) Uygulama Rotaları ve Ekranları
+Genel Layout
+
+Üst menü: “Duyurular”, “Oylamalar”, “Fikirler”, sağda Profil/Çıkış; admin’de “Yönetici”.
+
+Koyu arayüz, minimal, yuvarlak köşeler, yumuşak gölgeler, yüksek kontrast.
+
+Tailwind ve shadcn/ui kullan; responsive grid.
+
+Sayfalar
+
+/ → Dashboard: Son 3 duyuru + açık oylamalar + onaylı son 5 fikir.
+
+/login → Email+Şifre giriş (Supabase signInWithPassword).
+
+/register → Basit kayıt (opsiyonel). Kaydolan student rolünde açılır.
+
+/announcements (liste + detay). Admin için “Yeni Duyuru” butonu.
+
+/polls (liste). Kartta soru, seçenekler, yüzdeler (oy verince disabled).
+
+/polls/[id] (detay).
+
+/ideas → Onaylı fikirler listesi. Arama + kategori tag (ileride).
+
+/ideas/new → Yeni fikir gönder (login gereken).
+
+/ideas/[id] → Fikir detay + Yorumlar (modere).
+
+/classes → Sol tarafta sınıf filtresi (9-A, 9-B, 10-A …). Sağda liste: Ad Soyad, Numara.
+
+/admin → Tab’lar:
+
+Kullanıcılar: Listele/ara; bir kullanıcıyı admin/student yap (role update).
+
+Duyurular: CRUD.
+
+Oylamalar: Poll + options CRUD; poll kapatma/açma.
+
+Fikir Moderasyonu: ideas & ideas_comments için pending → approve/reject butonları; tarih damgası doldur.
+
+Sınıflar: Class_name ve öğrenci toplu import (CSV upload) — basit CSV parse ile profiles update.
+
+6) Veri Erişim Katmanı
+
+Server actions veya /app/api/ route handlers ile Supabase server client.
+
+Client’ta yalnızca read (public sayfalar) + kullanıcı etkileşimi; write işlemleri server tarafında.
+
+Supabase client yardımcıları:
+
+lib/supabase/browser.ts → createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY).
+
+lib/supabase/server.ts → createClient(SUPABASE_SERVICE_ROLE_KEY) (yalnızca server).
+
+7) Moderasyon Akışı (zorunlu)
+
+Yeni fikir: status='pending' → admin onaylar → status='approved', approved_at=now().
+
+Yeni yorum: aynı akış.
+
+Liste ekranlarında kullanıcı kendi pending içeriğini ve onaylı herkesi görebilir; başkalarının pending’ini göremez.
+
+8) Sınıf Sistemi
+
+profiles.class_name değerleri: ör. 9-A, 9-B, 10-A …
+
+/classes sayfasında Select komponenti ile filtre; sonuçlar tablo (Ad, Soyad, No).
+
+Admin panelinde CSV ile güncelleme:
+
+CSV kolonları: email,first_name,last_name,role,class_name,student_no,gender
+
+Var olan profile’ı email -> auth.users.id -> profiles.user_id eşleyerek update et; yoksa uyarı.
+
+9) UI & UX Kuralları
+
+Kart başlıkları kısa, açıklamalar 2 satır clamp.
+
+Boş durum (empty state) ekranları: ikon + kısa metin + call-to-action.
+
+Hatalar Toaster + Form altı hata metni.
+
+Formlar: react-hook-form + zod.
+
+Erişilebilirlik: Buton etiketleri, aria-label’lar.
+
+10) Seed (opsiyonel)
+
+scripts/seed.ts:
+
+1 admin kullanıcı oluştur (email: admin@demo.local) → profil role: admin.
+
+2–3 duyuru.
+
+1 açık oylama + 3 seçenek.
+
+2 onaylı fikir + 1 pending.
+
+6 örnek öğrenci (2 sınıf).
+
+Seed yalnızca local/deneme için; prod’da çalıştırma.
+
+11) Güvenlik
+
+Service role key sadece server’da (route handler/server action).
+
+RLS kuralları yukarıdaki gibi; client’dan doğrudan yazma yok.
+
+Admin sayfalarını role check ile koru (server tarafında).
+
+12) Kabul Kriterleri (Done Definition)
+
+Replit’te Deploy’a hazır: npm run build && npm start çalışır.
+
+.env ile Supabase bağlanınca giriş→duyuru→oylama→fikir gönder→moderasyon→yayın uçtan uca işler.
+
+/classes filtrasyon ve liste düzgün.
+
+Mobil view’larda UI kırılmaz.
+
+Kod düzenli, tip hatası yok, npm run lint temiz.
+
+13) Teslimatta İstediğim Dosya/Dizin Yapısı (özet)
+src/
+  app/
+    layout.tsx
+    page.tsx                    # dashboard
+    login/page.tsx
+    announcements/page.tsx
+    polls/page.tsx
+    polls/[id]/page.tsx
+    ideas/page.tsx
+    ideas/new/page.tsx
+    ideas/[id]/page.tsx
+    classes/page.tsx
+    admin/page.tsx              # tablı yönetici paneli
+    api/
+      admin/
+        approve-idea/route.ts
+        approve-comment/route.ts
+        set-role/route.ts
+        polls/route.ts          # create/close etc.
+      csv-import/route.ts
+  components/                   # Card, IdeaCard, PollCard, ClassFilter, etc.
+  lib/
+    supabase/
+      browser.ts
+      server.ts
+    auth.ts                     # getUser, requireAdmin helpers
+scripts/
+  seed.ts
+.replit
+replit.nix
+tailwind.config.ts
+
+14) Geliştirme Notları
+
+Listelemelerde infinite scroll değil sayfalama.
+
+Oylama yüzdeleri: votes per option / total votes. Kendi oyunu vurgula.
+
+Yorumlar: onaylı değilse “Yorumunuz onay bekliyor” bandı.
+
+Tüm metinler TR.
