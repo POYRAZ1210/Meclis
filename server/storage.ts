@@ -51,7 +51,7 @@ export class SupabaseStorage implements IStorage {
     
     const { data: announcement, error } = await supabaseAdmin
       .from('announcements')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(data)
       .eq('id', id)
       .select()
       .single();
