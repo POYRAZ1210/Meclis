@@ -43,7 +43,6 @@ export async function createIdea(data: { title: string; content: string; image_u
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  // Temporarily bypass image_url/video_url until schema cache is fixed
   const res = await fetch('/api/ideas', {
     method: 'POST',
     headers: {
@@ -51,11 +50,7 @@ export async function createIdea(data: { title: string; content: string; image_u
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify({
-      title: data.title,
-      content: data.content,
-      // NOTE: image_url and video_url will be added in a future update
-    }),
+    body: JSON.stringify(data),
   });
 
   if (!res.ok) {

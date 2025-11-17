@@ -582,15 +582,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
       }
 
-      // Simple insert (no image_url/video_url for now)
+      // Insert idea with image_url and video_url support
+      const insertData: any = {
+        title: validated.title,
+        content: validated.content,
+        author_id: userId,
+        status: 'pending',
+      };
+
+      // Add optional media URLs if provided
+      if (validated.image_url) {
+        insertData.image_url = validated.image_url;
+      }
+      if (validated.video_url) {
+        insertData.video_url = validated.video_url;
+      }
+
       const { data: idea, error } = await supabaseAdmin
         .from('ideas')
-        .insert([{
-          title: validated.title,
-          content: validated.content,
-          author_id: userId,
-          status: 'pending',
-        }])
+        .insert([insertData])
         .select()
         .single();
 
