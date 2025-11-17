@@ -560,16 +560,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      const { data: idea, error } = await supabaseAdmin
-        .from('ideas')
-        .insert({
-          ...validated,
-          status: 'pending',
-        })
-        .select()
-        .single();
+      // Use raw SQL to bypass schema cache issues
+      const { data: idea, error } = await supabaseAdmin.rpc('create_idea_v2', {
+        p_title: validated.title,
+        p_content: validated.content,
+        p_author_id: userId,
+        p_image_url: validated.image_url || null,
+        p_video_url: validated.video_url || null,
+      });
 
-      if (error) throw error;
+      if (error) {
+        // If RPC doesn't exist, fall back to direct insert
+        console.log('RPC not found, using direct insert');
+        const { data: fallbackIdea, error: insertError } = await supabaseAdmin
+          .from('ideas')
+          .insert([{
+            title: validated.title,
+            content: validated.content,
+            author_id: userId,
+            status: 'pending',
+            image_url: validated.image_url || null,
+            video_url: validated.video_url || null,
+          }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        return res.json(fallbackIdea);
+      }
 
       res.json(idea);
     } catch (error: any) {
