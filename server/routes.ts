@@ -205,6 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(pollsWithVotes);
     } catch (error: any) {
+      console.error('Error fetching admin polls:', error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -326,6 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overall_class_breakdown: overallClassBreakdown,
       });
     } catch (error: any) {
+      console.error('Error fetching poll stats:', error);
       res.status(400).json({ error: error.message });
     }
   });
