@@ -35,6 +35,7 @@ import AnnouncementForm from "@/components/admin/AnnouncementForm";
 import PollForm from "@/components/admin/PollForm";
 import BlutenForm from "@/components/admin/BlutenForm";
 import UserForm from "@/components/admin/UserForm";
+import PollStatsDialog from "@/components/admin/PollStatsDialog";
 
 dayjs.extend(relativeTime);
 dayjs.locale("tr");
@@ -407,6 +408,7 @@ export default function Admin() {
                               </div>
                             </div>
                             <div className="flex gap-2">
+                              <PollStatsDialog pollId={poll.id} pollQuestion={poll.question} />
                               <Button
                                 variant="ghost"
                                 size="sm"

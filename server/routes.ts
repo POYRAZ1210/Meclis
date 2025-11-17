@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { isAdmin, getUserRole } from "./services/supabase";
+import { isAdmin, getUserRole, supabaseAdmin } from "./services/supabase";
 import { 
   insertAnnouncementSchema, 
   insertPollSchema, 
@@ -20,7 +20,6 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
   
   // Verify token with Supabase
-  const { supabaseAdmin } = await import('./services/supabase');
   if (!supabaseAdmin) {
     return res.status(503).json({ error: "Authentication service unavailable" });
   }
@@ -167,6 +166,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const poll = await storage.togglePollStatus(id, is_open);
       
       res.json(poll);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get detailed poll statistics (who voted, class breakdown)
+  app.get('/api/admin/polls/:id/stats', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get poll with options
+      const { data: poll, error: pollError } = await supabaseAdmin
+        .from('polls')
+        .select(`
+          *,
+          options:poll_options(id, option_text)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (pollError) throw pollError;
+
+      // Get all votes with voter profile info
+      const { data: votes, error: votesError } = await supabaseAdmin
+        .from('poll_votes')
+        .select(`
+          *,
+          voter:user_id (
+            id,
+            email
+          )
+        `)
+        .eq('poll_id', id);
+
+      if (votesError) throw votesError;
+
+      // Get profile info for each voter
+      const voterIds = votes.map((v: any) => v.user_id);
+      const { data: profiles, error: profilesError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .in('user_id', voterIds);
+
+      if (profilesError) throw profilesError;
+
+      // Map profiles to votes
+      const votesWithProfiles = votes.map((vote: any) => {
+        const profile = profiles.find((p: any) => p.user_id === vote.user_id);
+        return {
+          ...vote,
+          profile,
+        };
+      });
+
+      // Calculate stats per option
+      const optionStats = poll.options.map((option: any) => {
+        const optionVotes = votesWithProfiles.filter((v: any) => v.option_id === option.id);
+        
+        // Group by class
+        const classCounts: Record<string, number> = {};
+        optionVotes.forEach((vote: any) => {
+          const className = vote.profile?.class_name || 'Sınıf Yok';
+          classCounts[className] = (classCounts[className] || 0) + 1;
+        });
+
+        return {
+          option_id: option.id,
+          option_text: option.option_text,
+          total_votes: optionVotes.length,
+          votes: optionVotes,
+          class_breakdown: classCounts,
+        };
+      });
+
+      // Overall class breakdown
+      const overallClassBreakdown: Record<string, number> = {};
+      votesWithProfiles.forEach((vote: any) => {
+        const className = vote.profile?.class_name || 'Sınıf Yok';
+        overallClassBreakdown[className] = (overallClassBreakdown[className] || 0) + 1;
+      });
+
+      res.json({
+        poll,
+        total_votes: votesWithProfiles.length,
+        option_stats: optionStats,
+        overall_class_breakdown: overallClassBreakdown,
+      });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
