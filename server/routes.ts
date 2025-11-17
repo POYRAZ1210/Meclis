@@ -7,6 +7,8 @@ import {
   insertPollSchema, 
   insertBlutenPostSchema,
   createUserSchema,
+  insertIdeaSchema,
+  insertCommentSchema,
 } from "@shared/schema";
 
 // Middleware to extract user ID from Supabase JWT token
@@ -376,6 +378,243 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ============================================
+  // IDEAS ROUTES (User)
+  // ============================================
+  
+  // Get approved ideas
+  app.get('/api/ideas', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: ideas, error } = await supabaseAdmin
+        .from('ideas')
+        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name)')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(ideas);
+    } catch (error: any) {
+      console.error('Error fetching ideas:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Create new idea
+  app.post('/api/ideas', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      const validated = insertIdeaSchema.parse({
+        ...req.body,
+        author_id: userId,
+      });
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: idea, error } = await supabaseAdmin
+        .from('ideas')
+        .insert({
+          ...validated,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(idea);
+    } catch (error: any) {
+      console.error('Error creating idea:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get single idea with comments
+  app.get('/api/ideas/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get idea with author info
+      const { data: idea, error: ideaError } = await supabaseAdmin
+        .from('ideas')
+        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name)')
+        .eq('id', id)
+        .single();
+
+      if (ideaError) throw ideaError;
+
+      // Get approved comments
+      const { data: comments, error: commentsError } = await supabaseAdmin
+        .from('comments')
+        .select('*, author:profiles!comments_author_id_fkey(first_name, last_name, class_name)')
+        .eq('idea_id', id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: true });
+
+      if (commentsError) throw commentsError;
+
+      // Check if user liked this idea
+      const { data: userLike } = await supabaseAdmin
+        .from('idea_likes')
+        .select('*')
+        .eq('idea_id', id)
+        .eq('user_id', userId)
+        .single();
+
+      res.json({
+        ...idea,
+        comments,
+        user_has_liked: !!userLike,
+      });
+    } catch (error: any) {
+      console.error('Error fetching idea:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Toggle like on idea
+  app.post('/api/ideas/:id/like', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Check if already liked
+      const { data: existingLike } = await supabaseAdmin
+        .from('idea_likes')
+        .select('*')
+        .eq('idea_id', id)
+        .eq('user_id', userId)
+        .single();
+
+      if (existingLike) {
+        // Unlike
+        const { error } = await supabaseAdmin
+          .from('idea_likes')
+          .delete()
+          .eq('idea_id', id)
+          .eq('user_id', userId);
+
+        if (error) throw error;
+
+        res.json({ liked: false });
+      } else {
+        // Like
+        const { error } = await supabaseAdmin
+          .from('idea_likes')
+          .insert({
+            idea_id: id,
+            user_id: userId,
+          });
+
+        if (error) throw error;
+
+        res.json({ liked: true });
+      }
+    } catch (error: any) {
+      console.error('Error toggling like:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Add comment to idea
+  app.post('/api/ideas/:id/comments', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+      const validated = insertCommentSchema.parse({
+        idea_id: id,
+        author_id: userId,
+        content: req.body.content,
+      });
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: comment, error } = await supabaseAdmin
+        .from('comments')
+        .insert({
+          ...validated,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(comment);
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // IDEAS ADMIN ROUTES
+  // ============================================
+  
+  // Get all ideas for moderation
+  app.get('/api/admin/ideas', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: ideas, error } = await supabaseAdmin
+        .from('ideas')
+        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(ideas);
+    } catch (error: any) {
+      console.error('Error fetching admin ideas:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get pending comments for moderation
+  app.get('/api/admin/comments', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: comments, error } = await supabaseAdmin
+        .from('comments')
+        .select(`
+          *, 
+          author:profiles!comments_author_id_fkey(first_name, last_name, class_name),
+          idea:ideas(title)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(comments);
+    } catch (error: any) {
+      console.error('Error fetching admin comments:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Update idea status
   app.patch('/api/admin/ideas/:id/status', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -386,11 +625,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
-      
-      await storage.updateIdeaStatus(id, status, reviewerId);
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('ideas')
+        .update({
+          status,
+          reviewed_by: reviewerId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
       
       res.json({ success: true });
     } catch (error: any) {
+      console.error('Error updating idea status:', error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -405,11 +658,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
-      
-      await storage.updateCommentStatus(id, status, reviewerId);
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('comments')
+        .update({
+          status,
+          reviewed_by: reviewerId,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
       
       res.json({ success: true });
     } catch (error: any) {
+      console.error('Error updating comment status:', error);
       res.status(400).json({ error: error.message });
     }
   });
