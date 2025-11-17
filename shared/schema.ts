@@ -79,6 +79,8 @@ export const insertIdeaSchema = z.object({
   title: z.string().min(3, "Başlık en az 3 karakter olmalı"),
   content: z.string().min(10, "İçerik en az 10 karakter olmalı"),
   author_id: z.string().uuid(),
+  image_url: z.string().url().optional().or(z.literal('')),
+  video_url: z.string().url().optional().or(z.literal('')),
 });
 
 export type InsertIdea = z.infer<typeof insertIdeaSchema>;
@@ -89,6 +91,9 @@ export interface Idea {
   content: string;
   status: 'pending' | 'approved' | 'rejected';
   author_id: string;
+  image_url?: string;
+  video_url?: string;
+  likes_count: number;
   reviewed_by?: string;
   reviewed_at?: string;
   created_at: string;
@@ -159,3 +164,19 @@ export const createUserSchema = z.object({
 });
 
 export type CreateUser = z.infer<typeof createUserSchema>;
+
+// ============================================
+// IDEA LIKES
+// ============================================
+export const insertIdeaLikeSchema = z.object({
+  idea_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+});
+
+export type InsertIdeaLike = z.infer<typeof insertIdeaLikeSchema>;
+
+export interface IdeaLike {
+  idea_id: string;
+  user_id: string;
+  created_at: string;
+}
