@@ -106,3 +106,22 @@ export async function triggerInstagramSync(): Promise<{ count: number }> {
   
   return response.json();
 }
+
+export async function getAdminBlutenPosts(): Promise<BlutenPost[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch('/api/admin/bluten', {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Blüten içerikleri yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<BlutenPost[]>;
+}

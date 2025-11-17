@@ -92,3 +92,22 @@ export async function deleteAnnouncement(id: string) {
     throw new Error(error.error || 'Duyuru silinirken hata oluştu');
   }
 }
+
+export async function getAdminAnnouncements() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch('/api/admin/announcements', {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Duyurular yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<Announcement[]>;
+}

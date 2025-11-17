@@ -63,3 +63,30 @@ export async function getClassNames() {
   const uniqueClasses = [...new Set(data.map(p => p.class_name).filter(Boolean))];
   return uniqueClasses as string[];
 }
+
+export async function getAdminProfiles(className?: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  // Build query string with optional className filter
+  const params = new URLSearchParams();
+  if (className && className !== 'Tümü') {
+    params.append('className', className);
+  }
+  
+  const url = `/api/admin/profiles${params.toString() ? `?${params.toString()}` : ''}`;
+
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Profiller yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<Profile[]>;
+}

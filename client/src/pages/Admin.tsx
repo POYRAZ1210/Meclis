@@ -19,11 +19,10 @@ import {
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
 import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2 } from "lucide-react";
-import { getProfiles, updateProfile } from "@/lib/api/profiles";
-import { getIdeas, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas";
-import { getAllBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
-import { getPendingComments, approveComment, rejectComment } from "@/lib/api/comments";
-import { getAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
+import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
+import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas";
+import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
+import { getAdminAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,28 +43,28 @@ export default function Admin() {
   const { toast } = useToast();
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
-    queryKey: ["/api/profiles"],
-    queryFn: () => getProfiles(),
+    queryKey: ["/api/admin/profiles"],
+    queryFn: () => getAdminProfiles(),
   });
 
-  const { data: pendingIdeas, isLoading: loadingIdeas } = useQuery({
-    queryKey: ["/api/ideas", "pending"],
-    queryFn: () => getIdeas("pending"),
+  const { data: adminIdeas, isLoading: loadingIdeas } = useQuery({
+    queryKey: ["/api/admin/ideas"],
+    queryFn: getAdminIdeas,
   });
 
   const { data: allBlutenPosts, isLoading: loadingBluten } = useQuery({
-    queryKey: ["/api/bluten/all"],
-    queryFn: getAllBlutenPosts,
+    queryKey: ["/api/admin/bluten"],
+    queryFn: getAdminBlutenPosts,
   });
 
-  const { data: pendingComments, isLoading: loadingComments } = useQuery({
-    queryKey: ["/api/comments", "pending"],
-    queryFn: getPendingComments,
+  const { data: adminComments, isLoading: loadingComments } = useQuery({
+    queryKey: ["/api/admin/comments"],
+    queryFn: getAdminComments,
   });
 
   const { data: announcements, isLoading: loadingAnnouncements } = useQuery({
-    queryKey: ["/api/announcements"],
-    queryFn: getAnnouncements,
+    queryKey: ["/api/admin/announcements"],
+    queryFn: getAdminAnnouncements,
   });
 
   const { data: polls, isLoading: loadingPolls } = useQuery({
@@ -76,7 +75,7 @@ export default function Admin() {
   const deleteAnnouncementMutation = useMutation({
     mutationFn: (announcementId: string) => deleteAnnouncement(announcementId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/announcements"] });
       toast({
         title: "Başarılı",
         description: "Duyuru silindi",
@@ -132,7 +131,7 @@ export default function Admin() {
     mutationFn: ({ userId, role }: { userId: string; role: string }) =>
       updateProfile(userId, { role: role as any }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
       toast({
         title: "Başarılı",
         description: "Kullanıcı rolü güncellendi",
@@ -151,7 +150,7 @@ export default function Admin() {
     mutationFn: ({ ideaId, status }: { ideaId: string; status: 'approved' | 'rejected' }) =>
       updateIdeaStatus(ideaId, status),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ideas"] });
       toast({
         title: "Başarılı",
         description: variables.status === 'approved' ? "Fikir onaylandı" : "Fikir reddedildi",
@@ -166,38 +165,21 @@ export default function Admin() {
     },
   });
 
-  const commentApproveMutation = useMutation({
-    mutationFn: (commentId: string) => approveComment(commentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
+  const commentStatusMutation = useMutation({
+    mutationFn: ({ commentId, status }: { commentId: string; status: 'approved' | 'rejected' }) =>
+      updateCommentStatus(commentId, status),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/comments"] });
       toast({
         title: "Başarılı",
-        description: "Yorum onaylandı",
+        description: variables.status === 'approved' ? "Yorum onaylandı" : "Yorum reddedildi",
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: error.message || "Yorum onaylanırken bir hata oluştu",
-      });
-    },
-  });
-
-  const commentRejectMutation = useMutation({
-    mutationFn: (commentId: string) => rejectComment(commentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
-      toast({
-        title: "Başarılı",
-        description: "Yorum reddedildi",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Yorum reddedilirken bir hata oluştu",
+        description: error.message || "Yorum durumu güncellenirken bir hata oluştu",
       });
     },
   });
@@ -206,7 +188,7 @@ export default function Admin() {
     mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
       toggleBlutenVisibility(id, visible),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bluten"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bluten"] });
       toast({
         title: "Başarılı",
         description: "Blüten görünürlüğü güncellendi",
@@ -544,14 +526,14 @@ export default function Admin() {
         <TabsContent value="ideas">
           <Card>
             <CardHeader>
-              <CardTitle>Bekleyen Fikirler ({pendingIdeas?.length || 0})</CardTitle>
+              <CardTitle>Fikirler Moderasyonu ({adminIdeas?.filter((i: any) => i.status === 'pending').length || 0} bekliyor)</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingIdeas ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : pendingIdeas && pendingIdeas.length > 0 ? (
+              ) : adminIdeas && adminIdeas.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -563,12 +545,12 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingIdeas.map((idea) => {
+                    {adminIdeas.map((idea: any) => {
                       const authorName = idea.author
                         ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
                         : "Anonim";
                       return (
-                        <TableRow key={idea.id} data-testid={`row-pending-idea-${idea.id}`}>
+                        <TableRow key={idea.id} data-testid={`row-idea-${idea.id}`}>
                           <TableCell className="font-medium">{idea.title}</TableCell>
                           <TableCell>{authorName}</TableCell>
                           <TableCell>{dayjs(idea.created_at).fromNow()}</TableCell>
@@ -577,25 +559,26 @@ export default function Admin() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" data-testid={`button-view-idea-${idea.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => ideaStatusMutation.mutate({ ideaId: idea.id, status: 'approved' })}
-                                data-testid={`button-approve-idea-${idea.id}`}
-                              >
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => ideaStatusMutation.mutate({ ideaId: idea.id, status: 'rejected' })}
-                                data-testid={`button-reject-idea-${idea.id}`}
-                              >
-                                <XCircle className="h-4 w-4 text-red-500" />
-                              </Button>
+                              {idea.status === 'pending' && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => ideaStatusMutation.mutate({ ideaId: idea.id, status: 'approved' })}
+                                    data-testid={`button-approve-idea-${idea.id}`}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => ideaStatusMutation.mutate({ ideaId: idea.id, status: 'rejected' })}
+                                    data-testid={`button-reject-idea-${idea.id}`}
+                                  >
+                                    <XCircle className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -604,7 +587,7 @@ export default function Admin() {
                   </TableBody>
                 </Table>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">Bekleyen fikir yok</p>
+                <p className="text-sm text-muted-foreground text-center py-8">Henüz fikir yok</p>
               )}
             </CardContent>
           </Card>
@@ -613,14 +596,14 @@ export default function Admin() {
         <TabsContent value="comments">
           <Card>
             <CardHeader>
-              <CardTitle>Bekleyen Yorumlar ({pendingComments?.length || 0})</CardTitle>
+              <CardTitle>Yorumlar Moderasyonu ({adminComments?.length || 0} bekliyor)</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingComments ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : pendingComments && pendingComments.length > 0 ? (
+              ) : adminComments && adminComments.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -632,16 +615,19 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingComments.map((comment) => {
+                    {adminComments.map((comment: any) => {
                       const authorName = comment.author
                         ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                         : "Anonim";
+                      const ideaTitle = comment.idea?.title || "Bilinmiyor";
                       return (
-                        <TableRow key={comment.id} data-testid={`row-pending-comment-${comment.id}`}>
+                        <TableRow key={comment.id} data-testid={`row-comment-${comment.id}`}>
                           <TableCell className="max-w-xs truncate">{comment.content}</TableCell>
                           <TableCell>{authorName}</TableCell>
                           <TableCell>
-                            <span className="text-xs text-muted-foreground">Fikir ID: {comment.idea_id.substring(0, 8)}</span>
+                            <span className="text-xs text-muted-foreground" title={ideaTitle}>
+                              {ideaTitle.substring(0, 30)}{ideaTitle.length > 30 ? '...' : ''}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <StatusBadge status={comment.status} />
@@ -651,7 +637,7 @@ export default function Admin() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => commentApproveMutation.mutate(comment.id)}
+                                onClick={() => commentStatusMutation.mutate({ commentId: comment.id, status: 'approved' })}
                                 data-testid={`button-approve-comment-${comment.id}`}
                               >
                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -659,7 +645,7 @@ export default function Admin() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => commentRejectMutation.mutate(comment.id)}
+                                onClick={() => commentStatusMutation.mutate({ commentId: comment.id, status: 'rejected' })}
                                 data-testid={`button-reject-comment-${comment.id}`}
                               >
                                 <XCircle className="h-4 w-4 text-red-500" />

@@ -122,6 +122,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Get ALL announcements (for admin panel)
+  app.get('/api/admin/announcements', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: announcements, error } = await supabaseAdmin
+        .from('announcements')
+        .select('*, author:profiles!announcements_author_id_fkey(first_name, last_name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(announcements);
+    } catch (error: any) {
+      console.error('Error fetching admin announcements:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get ALL bluten posts (for admin panel)
+  app.get('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: blutenPosts, error } = await supabaseAdmin
+        .from('bluten_posts')
+        .select('*')
+        .order('posted_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(blutenPosts);
+    } catch (error: any) {
+      console.error('Error fetching admin bluten:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get ALL profiles (for admin panel) with optional class filter
+  app.get('/api/admin/profiles', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { className } = req.query;
+      
+      let query = supabaseAdmin
+        .from('profiles')
+        .select('*');
+      
+      // Apply server-side class filter if provided
+      if (className && className !== 'Tümü') {
+        query = query.eq('class_name', className);
+      }
+      
+      query = query
+        .order('class_name', { ascending: true })
+        .order('student_no', { ascending: true });
+
+      const { data: profiles, error } = await query;
+
+      if (error) throw error;
+
+      res.json(profiles);
+    } catch (error: any) {
+      console.error('Error fetching admin profiles:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
   
   // Create poll with options
   app.post('/api/admin/polls', requireAuth, requireAdmin, async (req: Request, res: Response) => {
