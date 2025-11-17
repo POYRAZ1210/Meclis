@@ -245,16 +245,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (pollError) throw pollError;
 
-      // Get all votes with voter profile info
+      // Get all votes (no join - we'll fetch profiles separately)
       const { data: votes, error: votesError } = await supabaseAdmin
         .from('poll_votes')
-        .select(`
-          *,
-          voter:user_id (
-            id,
-            email
-          )
-        `)
+        .select('*')
         .eq('poll_id', id);
 
       if (votesError) throw votesError;
