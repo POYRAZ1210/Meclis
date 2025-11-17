@@ -560,46 +560,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // BYPASS PostgREST cache: Use raw SQL query directly
-      const { data, error } = await (supabaseAdmin as any)
-        .rpc('exec_sql', {
-          query: `
-            INSERT INTO ideas (title, content, author_id, status, image_url, video_url, likes_count)
-            VALUES ($1, $2, $3, 'pending', $4, $5, 0)
-            RETURNING *
-          `,
-          params: [
-            validated.title,
-            validated.content,
-            userId,
-            validated.image_url || null,
-            validated.video_url || null
-          ]
-        });
+      // Ensure profile exists (auto-create if missing)
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-      if (error) {
-        console.error('RPC exec_sql error:', error);
-        // Final fallback: Try without image_url/video_url
-        const { data: simpleIdea, error: simpleError } = await supabaseAdmin
-          .from('ideas')
-          .insert([{
-            title: validated.title,
-            content: validated.content,
-            author_id: userId,
-            status: 'pending',
-          }])
-          .select()
-          .single();
-
-        if (simpleError) {
-          console.error('Simple insert also failed:', simpleError);
-          throw new Error('Fikir oluşturulamadı. Lütfen yöneticinizle iletişime geçin.');
-        }
+      if (!existingProfile) {
+        // Auto-create profile for this user
+        const { data: { user } } = await supabaseAdmin.auth.getUser(userId);
         
-        return res.json(simpleIdea);
+        await supabaseAdmin
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            email: user?.email || '',
+            first_name: '',
+            last_name: '',
+            role: 'student',
+          });
       }
 
-      res.json(data?.[0] || data);
+      // Simple insert (no image_url/video_url for now)
+      const { data: idea, error } = await supabaseAdmin
+        .from('ideas')
+        .insert([{
+          title: validated.title,
+          content: validated.content,
+          author_id: userId,
+          status: 'pending',
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Insert error:', error);
+        throw new Error('Fikir oluşturulurken bir hata oluştu');
+      }
+
+      res.json(idea);
     } catch (error: any) {
       console.error('Error creating idea:', error);
       
