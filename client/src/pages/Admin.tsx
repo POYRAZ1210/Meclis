@@ -24,7 +24,7 @@ import { getIdeas, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas
 import { getAllBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getPendingComments, approveComment, rejectComment } from "@/lib/api/comments";
 import { getAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
-import { getPolls, deletePoll, togglePollStatus } from "@/lib/api/polls";
+import { getAdminPolls, deletePoll, togglePollStatus } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -69,8 +69,8 @@ export default function Admin() {
   });
 
   const { data: polls, isLoading: loadingPolls } = useQuery({
-    queryKey: ["/api/polls"],
-    queryFn: getPolls,
+    queryKey: ["/api/admin/polls"],
+    queryFn: getAdminPolls,
   });
 
   const deleteAnnouncementMutation = useMutation({
@@ -94,7 +94,7 @@ export default function Admin() {
   const deletePollMutation = useMutation({
     mutationFn: (pollId: string) => deletePoll(pollId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/polls"] });
       toast({
         title: "Başarılı",
         description: "Oylama silindi",
@@ -113,7 +113,7 @@ export default function Admin() {
     mutationFn: ({ pollId, isOpen }: { pollId: string; isOpen: boolean }) =>
       togglePollStatus(pollId, isOpen),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/polls"] });
       toast({
         title: "Başarılı",
         description: "Oylama durumu güncellendi",

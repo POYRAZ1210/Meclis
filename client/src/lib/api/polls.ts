@@ -221,3 +221,23 @@ export async function togglePollStatus(id: string, isOpen: boolean) {
 
   return res.json();
 }
+
+export async function getAdminPolls() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch('/api/admin/polls', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Oylamalar yüklenirken hata oluştu');
+  }
+
+  return res.json();
+}

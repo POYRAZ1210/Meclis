@@ -157,6 +157,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get ALL polls with accurate vote counts (for admin panel)
+  app.get('/api/admin/polls', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get all polls with options
+      const { data: polls, error: pollsError } = await supabaseAdmin
+        .from('polls')
+        .select(`
+          *,
+          options:poll_options(
+            id,
+            poll_id,
+            option_text
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (pollsError) throw pollsError;
+
+      // Calculate vote counts for each option (using service_role - bypasses RLS)
+      const pollsWithVotes = await Promise.all(
+        polls.map(async (poll) => {
+          const optionsWithVotes = await Promise.all(
+            poll.options.map(async (option: any) => {
+              const { count } = await supabaseAdmin
+                .from('poll_votes')
+                .select('*', { count: 'exact', head: true })
+                .eq('option_id', option.id);
+
+              return {
+                ...option,
+                vote_count: count || 0,
+              };
+            })
+          );
+
+          return {
+            ...poll,
+            options: optionsWithVotes,
+          };
+        })
+      );
+
+      res.json(pollsWithVotes);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Toggle poll open/close
   app.patch('/api/admin/polls/:id/status', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {

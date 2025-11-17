@@ -52,7 +52,7 @@ export default function PollForm() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/polls"] });
       toast({
         title: "Başarılı",
         description: "Oylama oluşturuldu",
