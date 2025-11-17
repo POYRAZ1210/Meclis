@@ -506,7 +506,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(idea);
     } catch (error: any) {
       console.error('Error creating idea:', error);
-      res.status(400).json({ error: error.message });
+      
+      // Handle Zod validation errors with user-friendly messages
+      if (error.name === 'ZodError') {
+        const firstError = error.errors[0];
+        const fieldName = firstError.path[0] === 'content' ? 'İçerik' : 
+                          firstError.path[0] === 'title' ? 'Başlık' : firstError.path[0];
+        res.status(400).json({ error: `${fieldName}: ${firstError.message}` });
+      } else {
+        res.status(400).json({ error: error.message || 'Fikir oluşturulurken bir hata oluştu' });
+      }
     }
   });
 
