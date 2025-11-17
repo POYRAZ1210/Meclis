@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { translateSupabaseError } from '@/lib/errors/supabase';
+import { queryClient } from '@/lib/queryClient';
 
 interface Profile {
   id: string;
@@ -155,6 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
+    // Clear ALL cache before signing in (prevents user data mixing)
+    queryClient.clear();
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -191,6 +195,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestTokenRef.current += 1;
     activeSessionUserIdRef.current = null;
     loadProfilePromisesRef.current.clear();
+    
+    // Clear ALL cache on sign out (prevents data leakage between users)
+    queryClient.clear();
     
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
