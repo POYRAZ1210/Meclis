@@ -6,10 +6,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video } from "lucide-react";
 import { getIdeas, createIdea, toggleLike } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import FileUpload from "@/components/FileUpload";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -113,32 +115,35 @@ export default function Ideas() {
                 rows={6}
                 data-testid="textarea-idea-content"
               />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block flex items-center gap-2">
+              
+              <Tabs defaultValue="image" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="image" className="flex items-center gap-2">
                     <Image className="h-4 w-4" />
-                    Görsel URL (opsiyonel)
-                  </label>
-                  <Input
-                    placeholder="https://..."
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    data-testid="input-idea-image"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block flex items-center gap-2">
+                    Görsel Yükle
+                  </TabsTrigger>
+                  <TabsTrigger value="video" className="flex items-center gap-2">
                     <Video className="h-4 w-4" />
-                    Video URL (opsiyonel)
-                  </label>
-                  <Input
-                    placeholder="https://..."
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    data-testid="input-idea-video"
+                    Video Yükle
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="image" className="mt-4">
+                  <FileUpload
+                    type="image"
+                    currentUrl={imageUrl}
+                    onUploadComplete={(url) => setImageUrl(url)}
+                    onRemove={() => setImageUrl("")}
                   />
-                </div>
-              </div>
+                </TabsContent>
+                <TabsContent value="video" className="mt-4">
+                  <FileUpload
+                    type="video"
+                    currentUrl={videoUrl}
+                    onUploadComplete={(url) => setVideoUrl(url)}
+                    onRemove={() => setVideoUrl("")}
+                  />
+                </TabsContent>
+              </Tabs>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-idea">
                   İptal

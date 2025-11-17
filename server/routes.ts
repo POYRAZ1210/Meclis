@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
 import { storage } from "./storage";
 import { isAdmin, getUserRole, supabaseAdmin } from "./services/supabase";
 import { 
@@ -10,6 +11,22 @@ import {
   insertIdeaSchema,
   insertCommentSchema,
 } from "@shared/schema";
+
+// Configure multer for file uploads (in-memory storage)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    // Allow images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Sadece resim ve video dosyaları yüklenebilir'));
+    }
+  },
+});
 
 // Middleware to extract user ID from Supabase JWT token
 async function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -261,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         polls.map(async (poll) => {
           const optionsWithVotes = await Promise.all(
             poll.options.map(async (option: any) => {
-              const { count } = await supabaseAdmin
+              const { count } = await supabaseAdmin!
                 .from('poll_votes')
                 .select('*', { count: 'exact', head: true })
                 .eq('option_id', option.id);
@@ -450,6 +467,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(profile);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+  
+  // ============================================
+  // FILE UPLOAD
+  // ============================================
+  
+  // Upload image or video
+  app.post('/api/upload', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Dosya seçilmedi' });
+      }
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      const file = req.file;
+      
+      // Generate unique filename
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `ideas/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabaseAdmin.storage
+        .from('ideas-media')
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        throw new Error('Dosya yüklenirken hata oluştu');
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('ideas-media')
+        .getPublicUrl(filePath);
+
+      res.json({ 
+        url: publicUrl,
+        type: file.mimetype.startsWith('image/') ? 'image' : 'video',
+      });
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      res.status(400).json({ error: error.message || 'Dosya yüklenirken bir hata oluştu' });
     }
   });
   
