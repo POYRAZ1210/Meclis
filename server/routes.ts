@@ -560,36 +560,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // Use raw SQL to bypass schema cache issues
-      const { data: idea, error } = await supabaseAdmin.rpc('create_idea_v2', {
-        p_title: validated.title,
-        p_content: validated.content,
-        p_author_id: userId,
-        p_image_url: validated.image_url || null,
-        p_video_url: validated.video_url || null,
-      });
+      // BYPASS PostgREST cache: Use raw SQL query directly
+      const { data, error } = await (supabaseAdmin as any)
+        .rpc('exec_sql', {
+          query: `
+            INSERT INTO ideas (title, content, author_id, status, image_url, video_url, likes_count)
+            VALUES ($1, $2, $3, 'pending', $4, $5, 0)
+            RETURNING *
+          `,
+          params: [
+            validated.title,
+            validated.content,
+            userId,
+            validated.image_url || null,
+            validated.video_url || null
+          ]
+        });
 
       if (error) {
-        // If RPC doesn't exist, fall back to direct insert
-        console.log('RPC not found, using direct insert');
-        const { data: fallbackIdea, error: insertError } = await supabaseAdmin
+        console.error('RPC exec_sql error:', error);
+        // Final fallback: Try without image_url/video_url
+        const { data: simpleIdea, error: simpleError } = await supabaseAdmin
           .from('ideas')
           .insert([{
             title: validated.title,
             content: validated.content,
             author_id: userId,
             status: 'pending',
-            image_url: validated.image_url || null,
-            video_url: validated.video_url || null,
           }])
           .select()
           .single();
 
-        if (insertError) throw insertError;
-        return res.json(fallbackIdea);
+        if (simpleError) {
+          console.error('Simple insert also failed:', simpleError);
+          throw new Error('Fikir oluşturulamadı. Lütfen yöneticinizle iletişime geçin.');
+        }
+        
+        return res.json(simpleIdea);
       }
 
-      res.json(idea);
+      res.json(data?.[0] || data);
     } catch (error: any) {
       console.error('Error creating idea:', error);
       
