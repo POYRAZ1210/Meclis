@@ -561,17 +561,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Ensure profile exists (auto-create if missing)
-      const { data: existingProfile } = await supabaseAdmin
+      const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
         .from('profiles')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (!existingProfile) {
+      if (!existingProfile && !profileCheckError) {
         // Auto-create profile for this user
-        const { data: { user } } = await supabaseAdmin.auth.getUser(userId);
+        console.log('Creating profile for user:', userId);
+        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(userId);
         
-        await supabaseAdmin
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          throw new Error('Kullanıcı bilgisi alınamadı');
+        }
+        
+        const { error: insertProfileError } = await supabaseAdmin
           .from('profiles')
           .insert({
             user_id: userId,
@@ -580,6 +586,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             last_name: '',
             role: 'student',
           });
+
+        if (insertProfileError) {
+          console.error('Error creating profile:', insertProfileError);
+          throw new Error('Profil oluşturulamadı. Lütfen yönetici ile iletişime geçin.');
+        }
+        
+        console.log('Profile created successfully for user:', userId);
       }
 
       // Insert idea with image_url and video_url support
