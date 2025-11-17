@@ -206,6 +206,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (votesError) throw votesError;
 
+      // Handle empty votes case
+      if (votes.length === 0) {
+        return res.json({
+          poll,
+          total_votes: 0,
+          option_stats: poll.options.map((option: any) => ({
+            option_id: option.id,
+            option_text: option.option_text,
+            total_votes: 0,
+            votes: [],
+            class_breakdown: {},
+          })),
+          overall_class_breakdown: {},
+        });
+      }
+
       // Get profile info for each voter
       const voterIds = votes.map((v: any) => v.user_id);
       const { data: profiles, error: profilesError } = await supabaseAdmin
