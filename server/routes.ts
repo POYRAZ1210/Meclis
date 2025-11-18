@@ -550,24 +550,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new idea
   app.post('/api/ideas', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
-      const validated = insertIdeaSchema.parse({
-        ...req.body,
-        author_id: userId,
-      });
-
+      const userId = (req as any).userId; // This is the auth user ID
+      
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // Ensure profile exists (auto-create if missing)
+      // Get or create profile and get the profile ID
+      let profileId: string | null = null;
+      
       const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
         .from('profiles')
         .select('id')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!existingProfile && !profileCheckError) {
+      if (existingProfile) {
+        profileId = existingProfile.id;
+      } else if (!profileCheckError) {
         // Auto-create profile for this user
         console.log('Creating profile for user:', userId);
         const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(userId);
@@ -577,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error('Kullanıcı bilgisi alınamadı');
         }
         
-        const { error: insertProfileError } = await supabaseAdmin
+        const { data: newProfile, error: insertProfileError } = await supabaseAdmin
           .from('profiles')
           .insert({
             user_id: userId,
@@ -585,21 +585,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             first_name: '',
             last_name: '',
             role: 'student',
-          });
+          })
+          .select('id')
+          .single();
 
-        if (insertProfileError) {
+        if (insertProfileError || !newProfile) {
           console.error('Error creating profile:', insertProfileError);
           throw new Error('Profil oluşturulamadı. Lütfen yönetici ile iletişime geçin.');
         }
         
-        console.log('Profile created successfully for user:', userId);
+        profileId = newProfile.id;
+        console.log('Profile created successfully with ID:', profileId);
+      } else {
+        throw new Error('Profil bilgisi alınamadı');
       }
+
+      if (!profileId) {
+        throw new Error('Profil ID bulunamadı');
+      }
+
+      // Validate with the correct author_id (profile ID, not user ID)
+      const validated = insertIdeaSchema.parse({
+        ...req.body,
+        author_id: profileId, // Use profile ID, not user ID!
+      });
 
       // Insert idea with image_url and video_url support
       const insertData: any = {
         title: validated.title,
         content: validated.content,
-        author_id: userId,
+        author_id: profileId, // Use profile ID!
         status: 'pending',
       };
 
