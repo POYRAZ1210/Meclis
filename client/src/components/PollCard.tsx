@@ -136,8 +136,13 @@ export default function PollCard({
                 </div>
               </>
             )}
+            {!isOpen && (
+              <p className="text-sm text-yellow-500 mt-4">
+                Bu oylama kapatılmıştır. Sonuçlar henüz yayınlanmadı.
+              </p>
+            )}
           </div>
-        ) : resultsPublished || !isOpen ? (
+        ) : resultsPublished ? (
           <>
             <div className="space-y-3">
               {options.map((option) => {
@@ -161,14 +166,9 @@ export default function PollCard({
               <Users className="h-3 w-3" />
               <span>Toplam {totalVotes} kişi oy verdi</span>
             </div>
-            {resultsPublished && (
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                ✓ Sonuçlar yayınlandı
-              </p>
-            )}
-            {!isOpen && !resultsPublished && (
-              <p className="text-sm text-yellow-500">Bu oylama kapatılmıştır</p>
-            )}
+            <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+              ✓ Sonuçlar yayınlandı
+            </p>
           </>
         ) : null}
 
