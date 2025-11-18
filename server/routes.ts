@@ -838,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      const reviewerId = (req as any).userId;
+      const userId = (req as any).userId;
       
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -848,11 +848,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
+      // Get reviewer's profile ID (not user ID!)
+      const reviewerProfileId = await getProfileId(userId);
+      if (!reviewerProfileId) {
+        return res.status(400).json({ error: "Reviewer profile not found" });
+      }
+
       const { error } = await supabaseAdmin
         .from('ideas')
         .update({
           status,
-          reviewed_by: reviewerId,
+          reviewed_by: reviewerProfileId,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', id);
@@ -871,7 +877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      const reviewerId = (req as any).userId;
+      const userId = (req as any).userId;
       
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -881,11 +887,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
+      // Get reviewer's profile ID (not user ID!)
+      const reviewerProfileId = await getProfileId(userId);
+      if (!reviewerProfileId) {
+        return res.status(400).json({ error: "Reviewer profile not found" });
+      }
+
       const { error } = await supabaseAdmin
         .from('comments')
         .update({
           status,
-          reviewed_by: reviewerId,
+          reviewed_by: reviewerProfileId,
         })
         .eq('id', id);
 
