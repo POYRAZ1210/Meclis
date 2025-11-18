@@ -225,6 +225,7 @@ function PollDisplay({ poll, onVote }: { poll: any; onVote: any }) {
       hasVoted={!!userVote}
       userVote={userVote?.option_id}
       isOpen={poll.is_open}
+      resultsPublished={poll.results_published}
       onVote={(optionId) => onVote({ pollId: poll.id, optionId })}
     />
   );

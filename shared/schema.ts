@@ -61,6 +61,7 @@ export interface Poll {
   id: string;
   question: string;
   is_open: boolean;
+  results_published: boolean;
   created_by?: string;
   created_at: string;
 }

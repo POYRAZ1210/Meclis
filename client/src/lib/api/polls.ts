@@ -11,6 +11,7 @@ export interface Poll {
   question: string;
   created_by: string;
   is_open: boolean;
+  results_published: boolean;
   created_at: string;
   options: PollOption[];
 }
@@ -130,6 +131,23 @@ export async function votePoll(pollId: string, optionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Giriş yapmanız gerekiyor');
 
+  // Check if poll is still open and results not published
+  const { data: poll, error: pollError } = await supabase
+    .from('polls')
+    .select('is_open, results_published')
+    .eq('id', pollId)
+    .single();
+
+  if (pollError) throw pollError;
+  
+  if (!poll.is_open) {
+    throw new Error('Bu oylama kapatılmıştır');
+  }
+  
+  if (poll.results_published) {
+    throw new Error('Sonuçlar yayınlandı, artık oy veremezsiniz');
+  }
+
   // Upsert allows changing vote
   const { data, error } = await supabase
     .from('poll_votes')
@@ -237,6 +255,26 @@ export async function getAdminPolls() {
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || 'Oylamalar yüklenirken hata oluştu');
+  }
+
+  return res.json();
+}
+
+export async function publishPollResults(id: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/polls/${id}/publish-results`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Sonuçlar yayınlanırken hata oluştu');
   }
 
   return res.json();

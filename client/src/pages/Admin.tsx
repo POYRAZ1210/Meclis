@@ -23,7 +23,7 @@ import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
-import { getAdminPolls, deletePoll, togglePollStatus } from "@/lib/api/polls";
+import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -135,6 +135,25 @@ export default function Admin() {
         variant: "destructive",
         title: "Hata",
         description: error.message || "Oylama durumu güncellenirken bir hata oluştu",
+      });
+    },
+  });
+
+  const publishResultsMutation = useMutation({
+    mutationFn: (pollId: string) => publishPollResults(pollId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      toast({
+        title: "Başarılı",
+        description: "Oylama sonuçları yayınlandı ve oylama kapatıldı",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Sonuçlar yayınlanırken bir hata oluştu",
       });
     },
   });
@@ -404,6 +423,25 @@ export default function Admin() {
                             </div>
                             <div className="flex gap-2">
                               <PollStatsDialog pollId={poll.id} pollQuestion={poll.question} />
+                              {!poll.results_published && (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm('Sonuçları yayınlamak istediğinize emin misiniz? Bu işlemden sonra kimse oy veremeyecek ve sonuçlar herkese görünür olacak.')) {
+                                      publishResultsMutation.mutate(poll.id);
+                                    }
+                                  }}
+                                  data-testid={`button-publish-results-${poll.id}`}
+                                >
+                                  Sonuçları Yayınla
+                                </Button>
+                              )}
+                              {poll.results_published && (
+                                <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                                  Sonuçlar Yayınlandı
+                                </span>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -412,6 +450,7 @@ export default function Admin() {
                                   isOpen: !poll.is_open 
                                 })}
                                 data-testid={`button-toggle-poll-${poll.id}`}
+                                disabled={poll.results_published}
                               >
                                 {poll.is_open ? 'Kapat' : 'Aç'}
                               </Button>

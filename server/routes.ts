@@ -318,6 +318,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Publish poll results (closes voting and shows results)
+  app.patch('/api/admin/polls/:id/publish-results', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Close the poll and publish results
+      const { data: poll, error } = await supabaseAdmin
+        .from('polls')
+        .update({ 
+          is_open: false,
+          results_published: true
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(poll);
+    } catch (error: any) {
+      console.error('Error publishing poll results:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Get detailed poll statistics (who voted, class breakdown)
   app.get('/api/admin/polls/:id/stats', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
