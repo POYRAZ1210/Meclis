@@ -1,4 +1,5 @@
 import { Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image } from "lucide-react";
+import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,9 +50,11 @@ export default function Header({
       <div className="container mx-auto px-4 lg:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-2 transition-all">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">🎓</span>
-            </div>
+            <img 
+              src={mayaLogo} 
+              alt="Maya Okulları" 
+              className="h-8 w-8 object-contain"
+            />
             <div className="flex flex-col">
               <span className="text-lg font-bold leading-none">
                 <span className="text-primary">Maya</span> Meclisi
