@@ -14,8 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("tr");
 
 export default function Dashboard() {
@@ -142,12 +146,12 @@ export default function Dashboard() {
                     <IdeaCard
                       key={idea.id}
                       title={idea.title}
-                      excerpt={idea.body.substring(0, 150)}
+                      excerpt={idea.content?.substring(0, 150) || ''}
                       authorName={authorName}
                       authorInitials={initials}
-                      createdAt={dayjs(idea.created_at).fromNow()}
+                      createdAt={dayjs.utc(idea.created_at).local().fromNow()}
                       status={idea.status}
-                      commentCount={0}
+                      commentCount={idea.comments?.length || 0}
                       onReadMore={() => console.log("Fikir detayı:", idea.id)}
                     />
                   );
