@@ -24,10 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getAnnouncements, createAnnouncement, type Announcement } from "@/lib/api/announcements";
+import { getAnnouncements, createAnnouncement, getAnnouncementComments, addAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { MessageSquare, Send } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -46,9 +48,35 @@ export default function Announcements() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
-  const { toast } = useToast();
+  const [newComment, setNewComment] = useState("");
+  const { toast} = useToast();
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
+
+  const { data: comments, isLoading: loadingComments } = useQuery({
+    queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'],
+    queryFn: () => selectedAnnouncement ? getAnnouncementComments(selectedAnnouncement.id) : Promise.resolve([]),
+    enabled: !!selectedAnnouncement,
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content: string) => addAnnouncementComment(selectedAnnouncement!.id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
+      setNewComment("");
+      toast({
+        title: "Başarılı",
+        description: "Yorumunuz moderatör onayına gönderildi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Yorum eklenirken bir hata oluştu",
+      });
+    },
+  });
 
   const { data: announcements, isLoading } = useQuery({
     queryKey: ["/api/announcements"],
@@ -151,7 +179,7 @@ export default function Announcements() {
       )}
 
       <Dialog open={!!selectedAnnouncement} onOpenChange={() => setSelectedAnnouncement(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedAnnouncement?.title}</DialogTitle>
             <DialogDescription>
@@ -160,8 +188,84 @@ export default function Announcements() {
                 : "Yönetici"} • {selectedAnnouncement && dayjs(selectedAnnouncement.created_at).fromNow()}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="py-4">
+              <p className="text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+            </div>
+
+            {/* Comments Section */}
+            <div className="border-t pt-6 mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <MessageSquare className="h-5 w-5" />
+                <h3 className="font-semibold">Yorumlar ({comments?.length || 0})</h3>
+              </div>
+
+              {/* Comment Form */}
+              <div className="mb-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Yorum yaz..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
+                        e.preventDefault();
+                        addCommentMutation.mutate(newComment);
+                      }
+                    }}
+                    disabled={addCommentMutation.isPending}
+                    data-testid="input-announcement-comment"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => newComment.trim() && addCommentMutation.mutate(newComment)}
+                    disabled={!newComment.trim() || addCommentMutation.isPending}
+                    data-testid="button-submit-comment"
+                  >
+                    {addCommentMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Comments List */}
+              {loadingComments ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : comments && comments.length > 0 ? (
+                <div className="space-y-4">
+                  {comments.map((comment: any) => {
+                    const authorName = comment.author
+                      ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
+                      : "Anonim";
+                    return (
+                      <Card key={comment.id} className="p-4" data-testid={`comment-${comment.id}`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-sm">{authorName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {comment.author?.class_name || ""} {comment.author?.student_no ? `• ${comment.author.student_no}` : ""}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {dayjs(comment.created_at).fromNow()}
+                          </p>
+                        </div>
+                        <p className="text-sm">{comment.content}</p>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Henüz yorum yok. İlk yorumu siz yapın!
+                </p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

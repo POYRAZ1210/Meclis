@@ -22,7 +22,7 @@ import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, 
 import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
-import { getAdminAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
+import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +72,11 @@ export default function Admin() {
   const { data: adminComments, isLoading: loadingComments } = useQuery({
     queryKey: ["/api/admin/comments"],
     queryFn: getAdminComments,
+  });
+
+  const { data: announcementComments, isLoading: loadingAnnouncementComments } = useQuery({
+    queryKey: ["/api/admin/announcement-comments"],
+    queryFn: getAdminAnnouncementComments,
   });
 
   const { data: announcements, isLoading: loadingAnnouncements } = useQuery({
@@ -236,6 +241,26 @@ export default function Admin() {
     },
   });
 
+  const announcementCommentStatusMutation = useMutation({
+    mutationFn: ({ commentId, status }: { commentId: string; status: 'approved' | 'rejected' }) =>
+      updateAnnouncementCommentStatus(commentId, status),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/announcement-comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
+      toast({
+        title: "Başarılı",
+        description: variables.status === 'approved' ? "Yorum onaylandı" : "Yorum reddedildi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Yorum durumu güncellenirken bir hata oluştu",
+      });
+    },
+  });
+
   const blutenVisibilityMutation = useMutation({
     mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
       toggleBlutenVisibility(id, visible),
@@ -263,7 +288,7 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:w-auto lg:inline-grid gap-1">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 lg:w-auto lg:inline-grid gap-1">
           <TabsTrigger value="users" data-testid="tab-users">
             <Users className="h-4 w-4 mr-2" />
             Kullanıcılar
@@ -286,7 +311,11 @@ export default function Admin() {
           </TabsTrigger>
           <TabsTrigger value="comments" data-testid="tab-comments">
             <MessageSquare className="h-4 w-4 mr-2" />
-            Yorumlar
+            Fikir Yorumları
+          </TabsTrigger>
+          <TabsTrigger value="announcement-comments" data-testid="tab-announcement-comments">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Duyuru Yorumları
           </TabsTrigger>
         </TabsList>
 
@@ -754,6 +783,77 @@ export default function Admin() {
                 </Table>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">Bekleyen yorum yok</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="announcement-comments">
+          <Card>
+            <CardHeader>
+              <CardTitle>Duyuru Yorumları Moderasyonu ({announcementComments?.filter((c: any) => c.status === 'pending').length || 0} bekliyor)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingAnnouncementComments ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : announcementComments && announcementComments.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Yorum</TableHead>
+                      <TableHead>Yazar</TableHead>
+                      <TableHead>Duyuru</TableHead>
+                      <TableHead>Durum</TableHead>
+                      <TableHead className="text-right">İşlemler</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {announcementComments.map((comment: any) => {
+                      const authorName = comment.author
+                        ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
+                        : "Anonim";
+                      const announcementTitle = comment.announcement?.title || "Bilinmiyor";
+                      return (
+                        <TableRow key={comment.id} data-testid={`row-announcement-comment-${comment.id}`}>
+                          <TableCell className="max-w-xs truncate">{comment.content}</TableCell>
+                          <TableCell>{authorName}</TableCell>
+                          <TableCell>
+                            <span className="text-xs text-muted-foreground" title={announcementTitle}>
+                              {announcementTitle.substring(0, 30)}{announcementTitle.length > 30 ? '...' : ''}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={comment.status} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => announcementCommentStatusMutation.mutate({ commentId: comment.id, status: 'approved' })}
+                                data-testid={`button-approve-announcement-comment-${comment.id}`}
+                              >
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => announcementCommentStatusMutation.mutate({ commentId: comment.id, status: 'rejected' })}
+                                data-testid={`button-reject-announcement-comment-${comment.id}`}
+                              >
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">Bekleyen duyuru yorumu yok</p>
               )}
             </CardContent>
           </Card>

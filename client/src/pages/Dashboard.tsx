@@ -180,7 +180,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground mb-4">
               Okulunuzu geliştirmek için fikirlerinizi paylaşın
             </p>
-            <Link href="/fikirler/yeni">
+            <Link href="/fikirler">
               <Button className="w-full" data-testid="button-new-idea">
                 <Plus className="h-4 w-4 mr-2" />
                 Fikir Paylaş

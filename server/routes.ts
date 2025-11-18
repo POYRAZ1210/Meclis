@@ -10,6 +10,7 @@ import {
   createUserSchema,
   insertIdeaSchema,
   insertCommentSchema,
+  insertAnnouncementCommentSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads (in-memory storage)
@@ -160,6 +161,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Public announcement routes
+  app.get('/api/announcements', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: announcements, error } = await supabaseAdmin
+        .from('announcements')
+        .select('*, author:profiles!announcements_author_id_fkey(first_name, last_name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(announcements);
+    } catch (error: any) {
+      console.error('Error fetching announcements:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/announcements/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: announcement, error } = await supabaseAdmin
+        .from('announcements')
+        .select('*, author:profiles!announcements_author_id_fkey(first_name, last_name)')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      res.json(announcement);
+    } catch (error: any) {
+      console.error('Error fetching announcement:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // ANNOUNCEMENT COMMENTS
+  // ============================================
+
+  // Create announcement comment
+  app.post('/api/announcements/:id/comments', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Profil bulunamadı');
+      }
+
+      const validated = insertAnnouncementCommentSchema.parse({
+        announcement_id: id,
+        author_id: profile.id,
+        content: req.body.content,
+      });
+
+      const { data: comment, error } = await supabaseAdmin
+        .from('announcement_comments')
+        .insert({
+          ...validated,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(comment);
+    } catch (error: any) {
+      console.error('Error adding announcement comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get approved announcement comments
+  app.get('/api/announcements/:id/comments', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: comments, error } = await supabaseAdmin
+        .from('announcement_comments')
+        .select(`
+          *,
+          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name, student_no)
+        `)
+        .eq('announcement_id', id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      res.json(comments);
+    } catch (error: any) {
+      console.error('Error fetching announcement comments:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get pending announcement comments (for admin moderation)
+  app.get('/api/admin/announcement-comments', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: comments, error } = await supabaseAdmin
+        .from('announcement_comments')
+        .select(`
+          *,
+          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name),
+          announcement:announcements(title)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(comments);
+    } catch (error: any) {
+      console.error('Error fetching admin announcement comments:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update announcement comment status
+  app.patch('/api/admin/announcement-comments/:id/status', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const userId = (req as any).userId;
+
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get reviewer's profile ID
+      const reviewerProfileId = await getProfileId(userId);
+      if (!reviewerProfileId) {
+        return res.status(400).json({ error: "Reviewer profile not found" });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('announcement_comments')
+        .update({
+          status,
+          reviewed_by: reviewerProfileId,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error updating announcement comment status:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // BLÜTEN
+  // ============================================
 
   // Get ALL bluten posts (for admin panel)
   app.get('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {
