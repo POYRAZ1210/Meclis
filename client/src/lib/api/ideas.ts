@@ -185,3 +185,23 @@ export async function updateCommentStatus(id: string, status: 'approved' | 'reje
 
   return res.json();
 }
+
+export async function deleteIdea(id: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const res = await fetch(`/api/admin/ideas/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to delete idea');
+  }
+
+  return res.json();
+}

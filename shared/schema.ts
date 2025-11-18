@@ -122,6 +122,27 @@ export interface Comment {
 }
 
 // ============================================
+// ANNOUNCEMENT COMMENTS
+// ============================================
+export const insertAnnouncementCommentSchema = z.object({
+  announcement_id: z.string().uuid(),
+  author_id: z.string().uuid(),
+  content: z.string().min(1, "Yorum boş olamaz"),
+});
+
+export type InsertAnnouncementComment = z.infer<typeof insertAnnouncementCommentSchema>;
+
+export interface AnnouncementComment {
+  id: string;
+  announcement_id: string;
+  author_id: string;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  created_at: string;
+}
+
+// ============================================
 // BLÜTEN POSTS
 // ============================================
 export const insertBlutenPostSchema = z.object({

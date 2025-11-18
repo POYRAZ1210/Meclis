@@ -67,7 +67,7 @@ export default function PollStatsDialog({ pollId, pollQuestion }: PollStatsDialo
           Detaylı İstatistikler
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{pollQuestion}</DialogTitle>
         </DialogHeader>
@@ -77,7 +77,7 @@ export default function PollStatsDialog({ pollId, pollQuestion }: PollStatsDialo
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : stats ? (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto pr-2 flex-1">
             {/* Overall Stats */}
             <Card>
               <CardHeader>
@@ -104,32 +104,34 @@ export default function PollStatsDialog({ pollId, pollQuestion }: PollStatsDialo
                   <CardTitle className="text-lg">Sınıf Bazlı Katılım</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={classChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {classChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-6 items-center">
+                    <div className="h-[220px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={classChartData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={75}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {classChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
                       {classChartData.map((item, index) => (
                         <div key={index} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-4 h-4 rounded" 
+                              className="w-4 h-4 rounded flex-shrink-0" 
                               style={{ backgroundColor: COLORS[index % COLORS.length] }}
                             />
                             <span className="text-sm">{item.name}</span>
@@ -152,33 +154,35 @@ export default function PollStatsDialog({ pollId, pollQuestion }: PollStatsDialo
                 </CardHeader>
                 <CardContent>
                   {opt.classChartData.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <ResponsiveContainer width="100%" height={200}>
-                        <PieChart>
-                          <Pie
-                            data={opt.classChartData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={70}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {opt.classChartData.map((entry: any, index: number) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="space-y-2">
-                        <p className="font-semibold mb-2">Sınıf Dağılımı:</p>
+                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                      <div className="h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={opt.classChartData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={65}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {opt.classChartData.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                        <p className="font-semibold mb-2 text-sm">Sınıf Dağılımı:</p>
                         {opt.classChartData.map((item: any, index: number) => (
                           <div key={index} className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div 
-                                className="w-4 h-4 rounded" 
+                                className="w-4 h-4 rounded flex-shrink-0" 
                                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
                               />
                               <span className="text-sm">{item.name}</span>
@@ -196,9 +200,9 @@ export default function PollStatsDialog({ pollId, pollQuestion }: PollStatsDialo
                   {opt.votes.length > 0 && (
                     <div className="mt-6">
                       <p className="font-semibold mb-2 text-sm">Oy Verenler:</p>
-                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                      <div className="space-y-1 max-h-[160px] overflow-y-auto pr-2 border rounded-md p-2 bg-background/50">
                         {opt.votes.map((vote: any, vIdx: number) => (
-                          <div key={vIdx} className="text-sm flex items-center justify-between py-1 px-2 rounded hover-elevate">
+                          <div key={vIdx} className="text-sm flex items-center justify-between py-1.5 px-2 rounded hover-elevate">
                             <span>
                               {vote.profile?.first_name} {vote.profile?.last_name}
                             </span>

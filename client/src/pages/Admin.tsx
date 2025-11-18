@@ -20,7 +20,7 @@ import {
 import StatusBadge from "@/components/StatusBadge";
 import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2 } from "lucide-react";
 import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
-import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus } from "@/lib/api/ideas";
+import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
@@ -212,6 +212,26 @@ export default function Admin() {
         variant: "destructive",
         title: "Hata",
         description: error.message || "Yorum durumu güncellenirken bir hata oluştu",
+      });
+    },
+  });
+
+  const deleteIdeaMutation = useMutation({
+    mutationFn: (ideaId: string) => deleteIdea(ideaId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ideas"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+      setSelectedIdea(null);
+      toast({
+        title: "Başarılı",
+        description: "Fikir silindi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Fikir silinirken bir hata oluştu",
       });
     },
   });
@@ -642,6 +662,18 @@ export default function Admin() {
                                   </Button>
                                 </>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Bu fikri silmek istediğinize emin misiniz? Tüm yorumları da silinecek.')) {
+                                    deleteIdeaMutation.mutate(idea.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-idea-${idea.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

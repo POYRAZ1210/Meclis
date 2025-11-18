@@ -941,6 +941,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete idea
+  app.delete('/api/admin/ideas/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Delete associated comments first (cascade)
+      await supabaseAdmin
+        .from('comments')
+        .delete()
+        .eq('idea_id', id);
+
+      // Delete idea
+      const { error } = await supabaseAdmin
+        .from('ideas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting idea:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Update comment status
   app.patch('/api/admin/comments/:id/status', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
