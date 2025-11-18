@@ -717,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select('*')
         .eq('idea_id', id)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (existingLike) {
         // Unlike
@@ -731,12 +731,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({ liked: false });
       } else {
-        // Like
+        // Like - use upsert to handle race conditions
         const { error } = await supabaseAdmin
           .from('idea_likes')
-          .insert({
+          .upsert({
             idea_id: id,
             user_id: userId,
+          }, {
+            onConflict: 'idea_id,user_id'
           });
 
         if (error) throw error;
@@ -745,6 +747,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error('Error toggling like:', error);
+      // Ignore duplicate key errors - just return success
+      if (error.code === '23505') {
+        return res.json({ liked: true });
+      }
       res.status(400).json({ error: error.message });
     }
   });

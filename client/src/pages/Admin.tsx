@@ -182,6 +182,7 @@ export default function Admin() {
       updateCommentStatus(commentId, status),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
       toast({
         title: "Başarılı",
         description: variables.status === 'approved' ? "Yorum onaylandı" : "Yorum reddedildi",
@@ -386,8 +387,8 @@ export default function Admin() {
                 </div>
               ) : polls && polls.length > 0 ? (
                 <div className="space-y-4">
-                  {polls.map((poll) => {
-                    const totalVotes = poll.options?.reduce((sum, opt: any) => sum + (opt.vote_count || 0), 0) || 0;
+                  {polls.map((poll: any) => {
+                    const totalVotes = poll.options?.reduce((sum: number, opt: any) => sum + (opt.vote_count || 0), 0) || 0;
                     
                     return (
                       <Card key={poll.id} data-testid={`card-poll-${poll.id}`}>
