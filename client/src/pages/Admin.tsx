@@ -30,17 +30,29 @@ import { supabase } from "@/lib/supabase";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import AnnouncementForm from "@/components/admin/AnnouncementForm";
 import PollForm from "@/components/admin/PollForm";
 import BlutenForm from "@/components/admin/BlutenForm";
 import UserForm from "@/components/admin/UserForm";
 import PollStatsDialog from "@/components/admin/PollStatsDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("tr");
 
 export default function Admin() {
   const { toast } = useToast();
+  const [selectedIdea, setSelectedIdea] = useState<any>(null);
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["/api/admin/profiles"],
@@ -549,16 +561,27 @@ export default function Admin() {
                       const authorName = idea.author
                         ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
                         : "Anonim";
+                      // Fix timezone issue - convert UTC to local time
+                      const createdDate = dayjs.utc(idea.created_at).local();
                       return (
                         <TableRow key={idea.id} data-testid={`row-idea-${idea.id}`}>
                           <TableCell className="font-medium">{idea.title}</TableCell>
                           <TableCell>{authorName}</TableCell>
-                          <TableCell>{dayjs(idea.created_at).fromNow()}</TableCell>
+                          <TableCell>{createdDate.fromNow()}</TableCell>
                           <TableCell>
                             <StatusBadge status={idea.status} />
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedIdea(idea)}
+                                data-testid={`button-view-idea-${idea.id}`}
+                                title="Detayları Görüntüle"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               {idea.status === 'pending' && (
                                 <>
                                   <Button
@@ -664,6 +687,94 @@ export default function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Idea Detail Dialog */}
+      <Dialog open={!!selectedIdea} onOpenChange={(open) => !open && setSelectedIdea(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedIdea?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedIdea && (
+            <div className="space-y-4">
+              {/* Author and Date */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  {selectedIdea.author
+                    ? `${selectedIdea.author.first_name || ""} ${selectedIdea.author.last_name || ""}`.trim()
+                    : "Anonim"}
+                  {selectedIdea.author?.class_name && ` • ${selectedIdea.author.class_name}`}
+                </span>
+                <span>{dayjs.utc(selectedIdea.created_at).local().format('DD.MM.YYYY HH:mm')}</span>
+              </div>
+
+              {/* Content */}
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="whitespace-pre-wrap">{selectedIdea.content}</p>
+              </div>
+
+              {/* Image */}
+              {selectedIdea.image_url && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Görsel:</p>
+                  <img
+                    src={selectedIdea.image_url}
+                    alt="Fikir görseli"
+                    className="w-full rounded-lg border"
+                  />
+                </div>
+              )}
+
+              {/* Video */}
+              {selectedIdea.video_url && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Video:</p>
+                  <video
+                    src={selectedIdea.video_url}
+                    controls
+                    className="w-full rounded-lg border"
+                  />
+                </div>
+              )}
+
+              {/* Status and Actions */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Durum:</span>
+                  <StatusBadge status={selectedIdea.status} />
+                </div>
+                {selectedIdea.status === 'pending' && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        ideaStatusMutation.mutate({ ideaId: selectedIdea.id, status: 'approved' });
+                        setSelectedIdea(null);
+                      }}
+                      data-testid="button-approve-in-dialog"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Onayla
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        ideaStatusMutation.mutate({ ideaId: selectedIdea.id, status: 'rejected' });
+                        setSelectedIdea(null);
+                      }}
+                      data-testid="button-reject-in-dialog"
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Reddet
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
