@@ -22,7 +22,11 @@ export default function AnnouncementCard({
     : content;
 
   return (
-    <Card className="hover-elevate transition-all" data-testid="card-announcement">
+    <Card 
+      className="hover-elevate transition-all cursor-pointer" 
+      data-testid="card-announcement"
+      onClick={onReadMore}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
@@ -51,10 +55,9 @@ export default function AnnouncementCard({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={onReadMore}
             data-testid="button-read-more"
           >
-            Devamını Oku
+            Detayları Gör
           </Button>
         </CardFooter>
       )}
