@@ -12,6 +12,7 @@ import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
+import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -63,7 +64,42 @@ export default function Ideas() {
 
   const likeMutation = useMutation({
     mutationFn: toggleLike,
-    onSuccess: () => {
+    onMutate: async (ideaId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/ideas'] });
+
+      // Snapshot previous value
+      const previousIdeas = queryClient.getQueryData(['/api/ideas']);
+
+      // Optimistically update
+      queryClient.setQueryData(['/api/ideas'], (old: any) => {
+        if (!old) return old;
+        return old.map((idea: any) => {
+          if (idea.id === ideaId) {
+            return {
+              ...idea,
+              user_has_liked: !idea.user_has_liked,
+              likes_count: idea.user_has_liked 
+                ? (idea.likes_count || 1) - 1 
+                : (idea.likes_count || 0) + 1,
+            };
+          }
+          return idea;
+        });
+      });
+
+      return { previousIdeas };
+    },
+    onError: (err, ideaId, context: any) => {
+      // Rollback on error
+      queryClient.setQueryData(['/api/ideas'], context.previousIdeas);
+      toast({
+        title: "Hata",
+        description: "Beğeni kaydedilemedi",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
     },
   });
@@ -250,7 +286,17 @@ export default function Ideas() {
                         }`}
                         data-testid={`button-like-${idea.id}`}
                       >
-                        <Heart className={`h-5 w-5 ${idea.user_has_liked ? 'fill-current' : ''}`} />
+                        <motion.div
+                          key={idea.user_has_liked ? 'liked' : 'unliked'}
+                          initial={{ scale: 1 }}
+                          animate={{ scale: [1, 1.3, 1] }}
+                          transition={{ 
+                            duration: 0.3,
+                            ease: "easeInOut"
+                          }}
+                        >
+                          <Heart className={`h-5 w-5 ${idea.user_has_liked ? 'fill-current' : ''}`} />
+                        </motion.div>
                         <span className="text-sm font-medium">{idea.likes_count || 0}</span>
                       </button>
                       <button

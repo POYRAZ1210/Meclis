@@ -753,16 +753,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ideas/:id/comments', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = (req as any).userId;
-      const validated = insertCommentSchema.parse({
-        idea_id: id,
-        author_id: userId,
-        content: req.body.content,
-      });
+      const userId = (req as any).userId; // This is the auth user ID
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Profil bulunamadı');
+      }
+
+      const validated = insertCommentSchema.parse({
+        idea_id: id,
+        author_id: profile.id, // Use profile ID instead of auth user ID
+        content: req.body.content,
+      });
 
       const { data: comment, error } = await supabaseAdmin
         .from('comments')
