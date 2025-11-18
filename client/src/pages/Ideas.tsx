@@ -7,16 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video } from "lucide-react";
-import { getIdeas, createIdea, toggleLike } from "@/lib/api/ideas";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp } from "lucide-react";
+import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("tr");
 
 export default function Ideas() {
@@ -25,6 +29,8 @@ export default function Ideas() {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const { data: ideas, isLoading } = useQuery({
@@ -59,6 +65,25 @@ export default function Ideas() {
     mutationFn: toggleLike,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
+    },
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: ({ ideaId, content }: { ideaId: string; content: string }) => addComment(ideaId, content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
+      setCommentText({ ...commentText, [variables.ideaId]: '' });
+      toast({
+        title: "Yorum gönderildi!",
+        description: "Yorumunuz yönetici onayından sonra yayınlanacak.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -195,7 +220,7 @@ export default function Ideas() {
                       )}
                       <span className="text-sm text-muted-foreground">·</span>
                       <span className="text-sm text-muted-foreground">
-                        {dayjs(idea.created_at).fromNow()}
+                        {dayjs.utc(idea.created_at).local().fromNow()}
                       </span>
                     </div>
                     <h3 className="font-bold text-lg mb-2">{idea.title}</h3>
@@ -228,11 +253,88 @@ export default function Ideas() {
                         <Heart className={`h-5 w-5 ${idea.user_has_liked ? 'fill-current' : ''}`} />
                         <span className="text-sm font-medium">{idea.likes_count || 0}</span>
                       </button>
-                      <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setExpandedIdea(expandedIdea === idea.id ? null : idea.id)}
+                        className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-1.5"
+                        data-testid={`button-comments-${idea.id}`}
+                      >
                         <MessageCircle className="h-5 w-5" />
                         <span className="text-sm font-medium">{idea.comments?.length || 0}</span>
-                      </div>
+                        {expandedIdea === idea.id ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
+
+                    {/* Comments Section */}
+                    {expandedIdea === idea.id && (
+                      <div className="mt-4 pt-4 border-t space-y-4">
+                        {/* Comment List */}
+                        {idea.comments && idea.comments.length > 0 ? (
+                          <div className="space-y-3">
+                            {idea.comments.map((comment: any) => {
+                              const commentAuthor = comment.author
+                                ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
+                                : "Anonim";
+                              return (
+                                <div key={comment.id} className="flex gap-3">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="text-xs">
+                                      {commentAuthor.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <div className="bg-muted rounded-lg p-3">
+                                      <p className="font-semibold text-sm">{commentAuthor}</p>
+                                      <p className="text-sm">{comment.content}</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1 ml-3">
+                                      {dayjs.utc(comment.created_at).local().fromNow()}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">Henüz yorum yok</p>
+                        )}
+
+                        {/* Comment Form */}
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Yorum yaz..."
+                            value={commentText[idea.id] || ''}
+                            onChange={(e) => setCommentText({ ...commentText, [idea.id]: e.target.value })}
+                            className="min-h-[60px]"
+                            data-testid={`input-comment-${idea.id}`}
+                          />
+                          <Button
+                            onClick={() => {
+                              if (!commentText[idea.id]?.trim()) {
+                                toast({
+                                  title: "Eksik bilgi",
+                                  description: "Yorum boş olamaz.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              commentMutation.mutate({ ideaId: idea.id, content: commentText[idea.id] });
+                            }}
+                            disabled={commentMutation.isPending}
+                            data-testid={`button-submit-comment-${idea.id}`}
+                          >
+                            {commentMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
