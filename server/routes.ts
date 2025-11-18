@@ -528,19 +528,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved ideas
   app.get('/api/ideas', requireAuth, async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).userId;
+
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      const { data: ideas, error } = await supabaseAdmin
+      const supabase = supabaseAdmin; // Store for closure
+
+      const { data: ideas, error } = await supabase
         .from('ideas')
-        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name)')
+        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name), comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name))')
         .eq('status', 'approved')
+        .eq('comments.status', 'approved')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      res.json(ideas);
+      // Check which ideas user has liked
+      const ideasWithLikes = await Promise.all(
+        (ideas || []).map(async (idea: any) => {
+          const { data: userLike } = await supabase
+            .from('idea_likes')
+            .select('*')
+            .eq('idea_id', idea.id)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          return {
+            ...idea,
+            user_has_liked: !!userLike,
+          };
+        })
+      );
+
+      res.json(ideasWithLikes);
     } catch (error: any) {
       console.error('Error fetching ideas:', error);
       res.status(400).json({ error: error.message });
