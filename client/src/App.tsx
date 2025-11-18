@@ -83,7 +83,7 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/siniflar">
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin={true}>
             <Classes />
           </ProtectedRoute>
         </Route>

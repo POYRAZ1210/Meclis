@@ -30,10 +30,10 @@ export default function Header({
     { path: "/bluten", label: "Blüten", icon: Image },
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
-    { path: "/siniflar", label: "Sınıflar", icon: Users },
   ];
 
   if (userRole === "admin") {
+    navItems.push({ path: "/siniflar", label: "Sınıflar", icon: Users });
     navItems.push({ path: "/yonetici", label: "Yönetici", icon: Shield });
   }
 
