@@ -166,9 +166,20 @@ export async function createPoll(question: string, options: string[]) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Giriş yapmanız gerekiyor');
 
+  // Get user's profile ID (not auth.users.id)
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('Profil bulunamadı');
+  }
+
   const { data: poll, error: pollError } = await supabase
     .from('polls')
-    .insert([{ question, created_by: user.id }])
+    .insert([{ question, created_by: profile.id }])
     .select()
     .single();
 
