@@ -1,16 +1,26 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import PollCard from "@/components/PollCard";
 import IdeaCard from "@/components/IdeaCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Loader2 } from "lucide-react";
+import { Bell, Plus, Loader2, MessageSquare, Send } from "lucide-react";
 import { Link } from "wouter";
-import { getAnnouncements } from "@/lib/api/announcements";
+import { getAnnouncements, getAnnouncementComments, addAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { getPolls, getPollVotes, getUserVote, votePoll } from "@/lib/api/polls";
 import { getIdeas } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -24,6 +34,8 @@ dayjs.locale("tr");
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [newComment, setNewComment] = useState("");
 
   const { data: announcements, isLoading: loadingAnnouncements } = useQuery({
     queryKey: ["/api/announcements"],
@@ -38,6 +50,31 @@ export default function Dashboard() {
   const { data: ideas, isLoading: loadingIdeas } = useQuery({
     queryKey: ["/api/ideas", "approved"],
     queryFn: () => getIdeas("approved"),
+  });
+
+  const { data: comments, isLoading: loadingComments } = useQuery({
+    queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'],
+    queryFn: () => selectedAnnouncement ? getAnnouncementComments(selectedAnnouncement.id) : Promise.resolve([]),
+    enabled: !!selectedAnnouncement,
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content: string) => addAnnouncementComment(selectedAnnouncement!.id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
+      setNewComment("");
+      toast({
+        title: "Başarılı",
+        description: "Yorumunuz moderatör onayına gönderildi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Yorum eklenirken bir hata oluştu",
+      });
+    },
   });
 
   const voteMutation = useMutation({
@@ -103,7 +140,7 @@ export default function Dashboard() {
                       content={announcement.content}
                       authorName={authorName}
                       createdAt={dayjs(announcement.created_at).format('DD MMMM YYYY, HH:mm')}
-                      onReadMore={() => console.log("Duyuru detayı:", announcement.id)}
+                      onReadMore={() => setSelectedAnnouncement(announcement)}
                     />
                   );
                 })}
@@ -189,6 +226,98 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Announcement Detail Dialog */}
+      <Dialog open={!!selectedAnnouncement} onOpenChange={() => setSelectedAnnouncement(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedAnnouncement?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedAnnouncement?.author
+                ? `${selectedAnnouncement.author.first_name || ""} ${selectedAnnouncement.author.last_name || ""}`.trim()
+                : "Yönetici"} • {selectedAnnouncement && dayjs(selectedAnnouncement.created_at).fromNow()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="py-4">
+              <p className="text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+            </div>
+
+            {/* Comments Section */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Yorumlar {comments && comments.length > 0 && `(${comments.length})`}
+              </h3>
+
+              {/* Comment Form */}
+              <div className="mb-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Yorum yaz..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
+                        e.preventDefault();
+                        addCommentMutation.mutate(newComment);
+                      }
+                    }}
+                    disabled={addCommentMutation.isPending}
+                    data-testid="input-announcement-comment"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => newComment.trim() && addCommentMutation.mutate(newComment)}
+                    disabled={!newComment.trim() || addCommentMutation.isPending}
+                    data-testid="button-submit-comment"
+                  >
+                    {addCommentMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Comments List */}
+              <div className="space-y-3">
+                {loadingComments ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : comments && comments.length > 0 ? (
+                  comments.map((comment: any) => (
+                    <Card key={comment.id} className="p-3" data-testid={`comment-${comment.id}`}>
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium">
+                              {comment.author
+                                ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
+                                : "Anonim"}
+                            </span>
+                            {comment.author?.class_name && (
+                              <span className="text-xs text-muted-foreground">• {comment.author.class_name}</span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              • {dayjs(comment.created_at).fromNow()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{comment.content}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Henüz yorum yok. İlk yorumu siz yapın!</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
