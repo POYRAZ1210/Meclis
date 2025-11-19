@@ -5,6 +5,7 @@ export interface Announcement {
   title: string;
   content: string;
   author_id: string;
+  target_audience: 'all' | 'class_presidents';
   created_at: string;
   author?: {
     first_name: string | null;
@@ -48,7 +49,7 @@ export async function getAnnouncement(id: string) {
   return res.json() as Promise<Announcement>;
 }
 
-export async function createAnnouncement(title: string, content: string) {
+export async function createAnnouncement(title: string, content: string, targetAudience: 'all' | 'class_presidents' = 'all') {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
@@ -59,7 +60,7 @@ export async function createAnnouncement(title: string, content: string) {
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify({ title, content }),
+    body: JSON.stringify({ title, content, target_audience: targetAudience }),
   });
 
   if (!res.ok) {
@@ -70,9 +71,14 @@ export async function createAnnouncement(title: string, content: string) {
   return res.json();
 }
 
-export async function updateAnnouncement(id: string, title: string, content: string) {
+export async function updateAnnouncement(id: string, title: string, content: string, targetAudience?: 'all' | 'class_presidents') {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const body: any = { title, content };
+  if (targetAudience) {
+    body.target_audience = targetAudience;
+  }
 
   const res = await fetch(`/api/admin/announcements/${id}`, {
     method: 'PATCH',
@@ -81,7 +87,7 @@ export async function updateAnnouncement(id: string, title: string, content: str
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify({ title, content }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

@@ -175,6 +175,7 @@ export class SupabaseStorage implements IStorage {
         role: data.role,
         class_name: data.class_name,
         student_no: data.student_no,
+        is_class_president: data.is_class_president,
       })
       .eq('user_id', authUser.user.id)
       .select()

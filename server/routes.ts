@@ -169,10 +169,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      const { data: announcements, error } = await supabaseAdmin
+      // Check if user is authenticated (optional)
+      const authHeader = req.headers.authorization;
+      let isClassPresident = false;
+
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        
+        if (user) {
+          // Get user's profile to check if they're a class president
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('is_class_president')
+            .eq('user_id', user.id)
+            .single();
+          
+          isClassPresident = profile?.is_class_president || false;
+        }
+      }
+
+      // Build query based on user's class president status
+      let query = supabaseAdmin
         .from('announcements')
         .select('*, author:profiles!announcements_author_id_fkey(first_name, last_name)')
         .order('created_at', { ascending: false });
+
+      // Filter by target audience
+      if (isClassPresident) {
+        // Class presidents see both 'all' and 'class_presidents' announcements
+        query = query.in('target_audience', ['all', 'class_presidents']);
+      } else {
+        // Regular users only see 'all' announcements
+        query = query.eq('target_audience', 'all');
+      }
+
+      const { data: announcements, error } = await query;
 
       if (error) throw error;
 

@@ -11,6 +11,7 @@ export const insertProfileSchema = z.object({
   class_name: z.string().optional(),
   student_no: z.string().optional(),
   gender: z.string().optional(),
+  is_class_president: z.boolean().default(false),
 });
 
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -24,6 +25,7 @@ export interface Profile {
   class_name?: string;
   student_no?: string;
   gender?: string;
+  is_class_president: boolean;
   created_at: string;
 }
 
@@ -34,6 +36,7 @@ export const insertAnnouncementSchema = z.object({
   title: z.string().min(3, "Başlık en az 3 karakter olmalı"),
   content: z.string().min(10, "İçerik en az 10 karakter olmalı"),
   author_id: z.string().uuid().optional(),
+  target_audience: z.enum(['all', 'class_presidents']).default('all'),
 });
 
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
@@ -43,6 +46,7 @@ export interface Announcement {
   title: string;
   content: string;
   author_id?: string;
+  target_audience: 'all' | 'class_presidents';
   created_at: string;
 }
 
@@ -183,6 +187,7 @@ export const createUserSchema = z.object({
   role: z.enum(['admin', 'teacher', 'student']).default('student'),
   class_name: z.string().optional(),
   student_no: z.string().optional(),
+  is_class_president: z.boolean().default(false),
 });
 
 export type CreateUser = z.infer<typeof createUserSchema>;
