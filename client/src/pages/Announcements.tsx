@@ -6,6 +6,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -41,6 +43,7 @@ dayjs.locale("tr");
 const announcementFormSchema = z.object({
   title: z.string().min(1, "Başlık gereklidir").max(200, "Başlık çok uzun"),
   content: z.string().min(1, "İçerik gereklidir").max(5000, "İçerik çok uzun"),
+  targetAudience: z.enum(['all', 'class_presidents']).default('all'),
 });
 
 type AnnouncementFormValues = z.infer<typeof announcementFormSchema>;
@@ -102,11 +105,12 @@ export default function Announcements() {
     defaultValues: {
       title: "",
       content: "",
+      targetAudience: 'all',
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: AnnouncementFormValues) => createAnnouncement(data.title, data.content),
+    mutationFn: (data: AnnouncementFormValues) => createAnnouncement(data.title, data.content, data.targetAudience),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
       setIsNewAnnouncementOpen(false);
@@ -324,6 +328,32 @@ export default function Announcements() {
                         {...field}
                         data-testid="textarea-announcement-content"
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="targetAudience"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hedef Kitle</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        data-testid="radio-target-audience"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="all" id="all" data-testid="radio-audience-all" />
+                          <Label htmlFor="all" className="cursor-pointer">Herkes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="class_presidents" id="class_presidents" data-testid="radio-audience-presidents" />
+                          <Label htmlFor="class_presidents" className="cursor-pointer">Sadece Sınıf Başkanları</Label>
+                        </div>
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
