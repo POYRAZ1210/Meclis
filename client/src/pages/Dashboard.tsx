@@ -7,7 +7,7 @@ import PollCard from "@/components/PollCard";
 import IdeaCard from "@/components/IdeaCard";
 import EmptyState from "@/components/EmptyState";
 import { Bell, Plus, Loader2, MessageSquare, Send } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { getAnnouncements, getAnnouncementComments, addAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { getPolls, getPollVotes, getUserVote, votePoll } from "@/lib/api/polls";
 import { getIdeas } from "@/lib/api/ideas";
@@ -34,6 +34,7 @@ dayjs.locale("tr");
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [newComment, setNewComment] = useState("");
 
@@ -48,8 +49,8 @@ export default function Dashboard() {
   });
 
   const { data: ideas, isLoading: loadingIdeas } = useQuery({
-    queryKey: ["/api/ideas", "approved"],
-    queryFn: () => getIdeas("approved"),
+    queryKey: ["/api/ideas"],
+    queryFn: getIdeas,
   });
 
   const { data: comments, isLoading: loadingComments } = useQuery({
@@ -169,7 +170,7 @@ export default function Dashboard() {
               </div>
             ) : recentIdeas && recentIdeas.length > 0 ? (
               <div className="space-y-4">
-                {recentIdeas.map((idea) => {
+                {recentIdeas.map((idea: any) => {
                   const authorName = idea.author
                     ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
                     : "Anonim";
@@ -189,7 +190,7 @@ export default function Dashboard() {
                       createdAt={dayjs.utc(idea.created_at).local().fromNow()}
                       status={idea.status}
                       commentCount={idea.comments?.length || 0}
-                      onReadMore={() => console.log("Fikir detayı:", idea.id)}
+                      onReadMore={() => setLocation("/fikirler")}
                     />
                   );
                 })}
