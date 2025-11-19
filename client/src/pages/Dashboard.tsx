@@ -13,6 +13,7 @@ import { getPolls, getPollVotes, getUserVote, votePoll } from "@/lib/api/polls";
 import { getIdeas } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ dayjs.locale("tr");
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [newComment, setNewComment] = useState("");
@@ -60,7 +62,17 @@ export default function Dashboard() {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (content: string) => addAnnouncementComment(selectedAnnouncement!.id, content),
+    mutationFn: (content: string) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Yorum yapmak için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return addAnnouncementComment(selectedAnnouncement!.id, content);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
       setNewComment("");
@@ -70,17 +82,28 @@ export default function Dashboard() {
       });
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Yorum eklenirken bir hata oluştu",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: error.message || "Yorum eklenirken bir hata oluştu",
+        });
+      }
     },
   });
 
   const voteMutation = useMutation({
-    mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) =>
-      votePoll(pollId, optionId),
+    mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Oy vermek için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return votePoll(pollId, optionId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
       toast({
@@ -89,11 +112,13 @@ export default function Dashboard() {
       });
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Oy verilirken bir hata oluştu",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: error.message || "Oy verilirken bir hata oluştu",
+        });
+      }
     },
   });
 

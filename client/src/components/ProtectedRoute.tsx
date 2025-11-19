@@ -27,7 +27,7 @@ export default function ProtectedRoute({
     }
   }, [loading, user, profile, requireAuth, requireAdmin, setLocation]);
 
-  if (loading) {
+  if (loading && requireAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

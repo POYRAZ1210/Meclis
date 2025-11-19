@@ -28,6 +28,7 @@ import { getAnnouncements, createAnnouncement, getAnnouncementComments, addAnnou
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import { MessageSquare, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import dayjs from "dayjs";
@@ -50,7 +51,8 @@ export default function Announcements() {
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
   const { toast} = useToast();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const [, setLocation] = useLocation();
   const isAdmin = profile?.role === "admin";
 
   const { data: comments, isLoading: loadingComments } = useQuery({
@@ -60,7 +62,17 @@ export default function Announcements() {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (content: string) => addAnnouncementComment(selectedAnnouncement!.id, content),
+    mutationFn: (content: string) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Yorum yapmak için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return addAnnouncementComment(selectedAnnouncement!.id, content);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
       setNewComment("");
@@ -70,11 +82,13 @@ export default function Announcements() {
       });
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Yorum eklenirken bir hata oluştu",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: error.message || "Yorum eklenirken bir hata oluştu",
+        });
+      }
     },
   });
 

@@ -162,8 +162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public announcement routes
-  app.get('/api/announcements', requireAuth, async (req: Request, res: Response) => {
+  // Public announcement routes (no auth required for viewing)
+  app.get('/api/announcements', async (req: Request, res: Response) => {
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/announcements/:id', requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/announcements/:id', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -255,8 +255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get approved announcement comments
-  app.get('/api/announcements/:id/comments', requireAuth, async (req: Request, res: Response) => {
+  // Get approved announcement comments (public - no auth required)
+  app.get('/api/announcements/:id/comments', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -744,10 +744,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // IDEAS ROUTES (User)
   // ============================================
   
-  // Get approved ideas
-  app.get('/api/ideas', requireAuth, async (req: Request, res: Response) => {
+  // Get approved ideas (public - no auth required)
+  app.get('/api/ideas', async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = (req as any).userId; // Optional - only set if authenticated
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
@@ -764,9 +764,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
-      // Check which ideas user has liked
+      // Check which ideas user has liked (only if authenticated)
       const ideasWithLikes = await Promise.all(
         (ideas || []).map(async (idea: any) => {
+          if (!userId) {
+            return {
+              ...idea,
+              user_has_liked: false,
+            };
+          }
+
           const { data: userLike } = await supabase
             .from('idea_likes')
             .select('*')
@@ -894,11 +901,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single idea with comments
-  app.get('/api/ideas/:id', requireAuth, async (req: Request, res: Response) => {
+  // Get single idea with comments (public - no auth required)
+  app.get('/api/ideas/:id', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = (req as any).userId;
+      const userId = (req as any).userId; // Optional - only set if authenticated
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
@@ -923,18 +930,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (commentsError) throw commentsError;
 
-      // Check if user liked this idea
-      const { data: userLike } = await supabaseAdmin
-        .from('idea_likes')
-        .select('*')
-        .eq('idea_id', id)
-        .eq('user_id', userId)
-        .single();
+      // Check if user liked this idea (only if authenticated)
+      let userHasLiked = false;
+      if (userId) {
+        const { data: userLike } = await supabaseAdmin
+          .from('idea_likes')
+          .select('*')
+          .eq('idea_id', id)
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        userHasLiked = !!userLike;
+      }
 
       res.json({
         ...idea,
         comments,
-        user_has_liked: !!userLike,
+        user_has_liked: userHasLiked,
       });
     } catch (error: any) {
       console.error('Error fetching idea:', error);

@@ -27,6 +27,7 @@ import { getPolls, getPollVotes, getUserVote, votePoll, createPoll, closePoll, t
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 
 const pollFormSchema = z.object({
   question: z.string().min(1, "Soru gereklidir").max(500, "Soru çok uzun"),
@@ -40,7 +41,8 @@ type PollFormValues = z.infer<typeof pollFormSchema>;
 export default function Polls() {
   const [isNewPollOpen, setIsNewPollOpen] = useState(false);
   const { toast } = useToast();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const [, setLocation] = useLocation();
   const isAdmin = profile?.role === "admin";
 
   const { data: polls, isLoading } = useQuery({
@@ -62,8 +64,17 @@ export default function Polls() {
   });
 
   const voteMutation = useMutation({
-    mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) =>
-      votePoll(pollId, optionId),
+    mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Oy vermek için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return votePoll(pollId, optionId);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
       queryClient.invalidateQueries({ queryKey: ["/api/polls", variables.pollId, "votes"] });
@@ -74,11 +85,13 @@ export default function Polls() {
       });
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Oy verilirken bir hata oluştu",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: error.message || "Oy verilirken bir hata oluştu",
+        });
+      }
     },
   });
 

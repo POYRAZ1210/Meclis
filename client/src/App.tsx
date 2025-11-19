@@ -45,40 +45,38 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-background">
-      {isAuthenticated && (
-        <Header
-          isAuthenticated={isAuthenticated}
-          userRole={userRole}
-          userName={userName}
-          onLogout={handleLogout}
-        />
-      )}
+      <Header
+        isAuthenticated={isAuthenticated}
+        userRole={userRole}
+        userName={userName}
+        onLogout={handleLogout}
+      />
       
       <Switch>
         <Route path="/giris" component={Login} />
         <Route path="/kayit" component={Register} />
         <Route path="/">
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={false}>
             <Dashboard />
           </ProtectedRoute>
         </Route>
         <Route path="/duyurular">
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={false}>
             <Announcements />
           </ProtectedRoute>
         </Route>
         <Route path="/bluten">
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={false}>
             <Bluten />
           </ProtectedRoute>
         </Route>
         <Route path="/oylamalar">
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={false}>
             <Polls />
           </ProtectedRoute>
         </Route>
         <Route path="/fikirler">
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={false}>
             <Ideas />
           </ProtectedRoute>
         </Route>

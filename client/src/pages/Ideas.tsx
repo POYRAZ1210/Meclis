@@ -11,6 +11,8 @@ import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDo
 import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import FileUpload from "@/components/FileUpload";
 import { motion } from "framer-motion";
 import dayjs from "dayjs";
@@ -33,6 +35,8 @@ export default function Ideas() {
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: ideas, isLoading } = useQuery({
     queryKey: ['/api/ideas'],
@@ -40,7 +44,17 @@ export default function Ideas() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createIdea,
+    mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string }) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Fikir paylaşmak için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return createIdea(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       setTitle("");
@@ -54,17 +68,31 @@ export default function Ideas() {
       });
     },
     onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          title: "Hata",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
   const likeMutation = useMutation({
-    mutationFn: toggleLike,
+    mutationFn: (ideaId: string) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Beğenmek için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return toggleLike(ideaId);
+    },
     onMutate: async (ideaId) => {
+      if (!user) return { previousIdeas: null };
+
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/ideas'] });
 
@@ -90,14 +118,18 @@ export default function Ideas() {
 
       return { previousIdeas };
     },
-    onError: (err, ideaId, context: any) => {
+    onError: (err: any, ideaId, context: any) => {
       // Rollback on error
-      queryClient.setQueryData(['/api/ideas'], context.previousIdeas);
-      toast({
-        title: "Hata",
-        description: "Beğeni kaydedilemedi",
-        variant: "destructive",
-      });
+      if (context?.previousIdeas) {
+        queryClient.setQueryData(['/api/ideas'], context.previousIdeas);
+      }
+      if (err.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          title: "Hata",
+          description: "Beğeni kaydedilemedi",
+          variant: "destructive",
+        });
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
@@ -105,7 +137,17 @@ export default function Ideas() {
   });
 
   const commentMutation = useMutation({
-    mutationFn: ({ ideaId, content }: { ideaId: string; content: string }) => addComment(ideaId, content),
+    mutationFn: ({ ideaId, content }: { ideaId: string; content: string }) => {
+      if (!user) {
+        toast({
+          title: "Giriş Gerekli",
+          description: "Yorum yapmak için giriş yapmanız gerekiyor",
+        });
+        setTimeout(() => setLocation("/giris"), 1500);
+        throw new Error("Giriş yapmanız gerekiyor");
+      }
+      return addComment(ideaId, content);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       setCommentText({ ...commentText, [variables.ideaId]: '' });
@@ -115,11 +157,13 @@ export default function Ideas() {
       });
     },
     onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.message !== "Giriş yapmanız gerekiyor") {
+        toast({
+          title: "Hata",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -133,7 +177,7 @@ export default function Ideas() {
       return;
     }
 
-    createMutation.mutate({ title, content, image_url: imageUrl || '', video_url: videoUrl || '' });
+    createMutation.mutate({ title, content, imageUrl: imageUrl || undefined, videoUrl: videoUrl || undefined });
   };
 
   if (isLoading) {
