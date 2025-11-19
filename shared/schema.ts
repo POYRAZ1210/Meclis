@@ -1,4 +1,113 @@
 import { z } from "zod";
+import { pgTable, varchar, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+// ============================================
+// DRIZZLE ORM TABLE DEFINITIONS
+// ============================================
+
+export const profiles = pgTable("profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").notNull().unique(),
+  first_name: text("first_name"),
+  last_name: text("last_name"),
+  role: text("role").notNull().default("student"),
+  class_name: text("class_name"),
+  student_no: text("student_no"),
+  gender: text("gender"),
+  is_class_president: boolean("is_class_president").notNull().default(false),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  author_id: varchar("author_id"),
+  target_audience: text("target_audience").notNull().default("all"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const polls = pgTable("polls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: text("question").notNull(),
+  is_open: boolean("is_open").notNull().default(true),
+  results_published: boolean("results_published").notNull().default(false),
+  created_by: varchar("created_by"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const pollOptions = pgTable("poll_options", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  poll_id: varchar("poll_id").notNull(),
+  option_text: text("option_text").notNull(),
+  vote_count: integer("vote_count").notNull().default(0),
+});
+
+export const pollVotes = pgTable("poll_votes", {
+  user_id: varchar("user_id").notNull(),
+  poll_id: varchar("poll_id").notNull(),
+  option_id: varchar("option_id").notNull(),
+  voted_at: timestamp("voted_at").notNull().default(sql`now()`),
+});
+
+export const ideas = pgTable("ideas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("pending"),
+  author_id: varchar("author_id").notNull(),
+  image_url: text("image_url"),
+  video_url: text("video_url"),
+  likes_count: integer("likes_count").notNull().default(0),
+  reviewed_by: varchar("reviewed_by"),
+  reviewed_at: timestamp("reviewed_at"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const comments = pgTable("comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  idea_id: varchar("idea_id").notNull(),
+  author_id: varchar("author_id").notNull(),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("pending"),
+  reviewed_by: varchar("reviewed_by"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const announcementComments = pgTable("announcement_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcement_id: varchar("announcement_id").notNull(),
+  author_id: varchar("author_id").notNull(),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("pending"),
+  reviewed_by: varchar("reviewed_by"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const blutenPosts = pgTable("bluten_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  instagram_post_id: text("instagram_post_id"),
+  instagram_url: text("instagram_url").notNull(),
+  media_url: text("media_url"),
+  media_type: text("media_type"),
+  caption: text("caption"),
+  username: text("username"),
+  is_visible: boolean("is_visible").notNull().default(true),
+  created_by: varchar("created_by"),
+  posted_at: timestamp("posted_at"),
+  fetched_at: timestamp("fetched_at").notNull().default(sql`now()`),
+});
+
+export const ideaLikes = pgTable("idea_likes", {
+  idea_id: varchar("idea_id").notNull(),
+  user_id: varchar("user_id").notNull(),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// ============================================
+// ZOD SCHEMAS & TYPES
+// ============================================
 
 // ============================================
 // PROFILES
