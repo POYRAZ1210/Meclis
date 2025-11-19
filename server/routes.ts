@@ -8,6 +8,7 @@ import {
   insertPollSchema, 
   insertBlutenPostSchema,
   createUserSchema,
+  updateProfileSchema,
   insertIdeaSchema,
   insertCommentSchema,
   insertAnnouncementCommentSchema,
@@ -708,6 +709,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all users (admin only)
+  app.get('/api/admin/users', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: profiles, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(profiles);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Create user manually
   app.post('/api/admin/users', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -716,6 +737,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.createUserWithProfile(validated);
       
       res.json(profile);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update user profile
+  app.patch('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validated = updateProfileSchema.parse(req.body);
+      
+      const profile = await storage.updateProfile(id, validated);
+      
+      res.json(profile);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete user
+  app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      // First get profile to find user_id
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Kullanıcı bulunamadı');
+      }
+
+      await storage.deleteUser(profile.user_id);
+      
+      res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

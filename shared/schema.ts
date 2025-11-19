@@ -16,6 +16,18 @@ export const insertProfileSchema = z.object({
 
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 
+export const updateProfileSchema = z.object({
+  first_name: z.string().min(1, "Ad gerekli").optional(),
+  last_name: z.string().min(1, "Soyad gerekli").optional(),
+  role: z.enum(['admin', 'teacher', 'student']).optional(),
+  class_name: z.string().optional(),
+  student_no: z.string().optional(),
+  gender: z.string().optional(),
+  is_class_president: z.boolean().optional(),
+});
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+
 export interface Profile {
   id: string;
   user_id: string;

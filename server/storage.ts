@@ -26,8 +26,10 @@ export interface IStorage {
   createManualBlutenPost(data: InsertBlutenPost): Promise<BlutenPost>;
   toggleBlutenVisibility(id: string, visible: boolean): Promise<void>;
   
-  // Users (Manual creation)
+  // Users (Manual creation & management)
   createUserWithProfile(data: CreateUser): Promise<Profile>;
+  updateProfile(profileId: string, data: Partial<Profile>): Promise<Profile>;
+  deleteUser(userId: string): Promise<void>;
   
   // Moderation
   updateIdeaStatus(ideaId: string, status: 'approved' | 'rejected', reviewerId: string): Promise<void>;
@@ -183,6 +185,29 @@ export class SupabaseStorage implements IStorage {
     
     if (profileError) throw profileError;
     return profile;
+  }
+
+  async updateProfile(profileId: string, data: Partial<Profile>): Promise<Profile> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    const { data: profile, error } = await supabaseAdmin
+      .from('profiles')
+      .update(data)
+      .eq('id', profileId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return profile;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    if (!supabaseAdmin) throw new Error('Supabase not configured');
+    
+    // Delete from auth (this cascades to profiles due to FK constraint)
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    
+    if (error) throw error;
   }
 
   async updateIdeaStatus(ideaId: string, status: 'approved' | 'rejected', reviewerUserId: string): Promise<void> {
