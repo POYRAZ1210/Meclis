@@ -13,6 +13,7 @@ import Polls from "@/pages/Polls";
 import Ideas from "@/pages/Ideas";
 import Classes from "@/pages/Classes";
 import Admin from "@/pages/Admin";
+import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
@@ -88,6 +89,11 @@ function Router() {
         <Route path="/yonetici">
           <ProtectedRoute requireAdmin={true}>
             <Admin />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/profil">
+          <ProtectedRoute requireAuth={true}>
+            <Profile />
           </ProtectedRoute>
         </Route>
         <Route component={NotFound} />
