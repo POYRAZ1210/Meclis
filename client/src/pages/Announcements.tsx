@@ -178,7 +178,7 @@ export default function Announcements() {
                 title={announcement.title}
                 content={announcement.content}
                 authorName={authorName}
-                createdAt={dayjs(announcement.created_at).fromNow()}
+                createdAt={dayjs.utc(announcement.created_at).local().fromNow()}
                 onReadMore={() => setSelectedAnnouncement(announcement)}
               />
             );
@@ -199,7 +199,7 @@ export default function Announcements() {
             <DialogDescription>
               {selectedAnnouncement?.author
                 ? `${selectedAnnouncement.author.first_name || ""} ${selectedAnnouncement.author.last_name || ""}`.trim()
-                : "Yönetici"} • {selectedAnnouncement && dayjs(selectedAnnouncement.created_at).fromNow()}
+                : "Yönetici"} • {selectedAnnouncement && dayjs.utc(selectedAnnouncement.created_at).local().fromNow()}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
@@ -266,7 +266,7 @@ export default function Announcements() {
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {dayjs(comment.created_at).fromNow()}
+                            {dayjs.utc(comment.created_at).local().fromNow()}
                           </p>
                         </div>
                         <p className="text-sm">{comment.content}</p>

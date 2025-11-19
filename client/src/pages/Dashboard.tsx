@@ -257,7 +257,7 @@ export default function Dashboard() {
             <DialogDescription>
               {selectedAnnouncement?.author
                 ? `${selectedAnnouncement.author.first_name || ""} ${selectedAnnouncement.author.last_name || ""}`.trim()
-                : "Yönetici"} • {selectedAnnouncement && dayjs(selectedAnnouncement.created_at).fromNow()}
+                : "Yönetici"} • {selectedAnnouncement && dayjs.utc(selectedAnnouncement.created_at).local().fromNow()}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
@@ -324,7 +324,7 @@ export default function Dashboard() {
                               <span className="text-xs text-muted-foreground">• {comment.author.class_name}</span>
                             )}
                             <span className="text-xs text-muted-foreground">
-                              • {dayjs(comment.created_at).fromNow()}
+                              • {dayjs.utc(comment.created_at).local().fromNow()}
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground">{comment.content}</p>
