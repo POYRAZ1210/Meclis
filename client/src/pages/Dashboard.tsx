@@ -161,7 +161,7 @@ export default function Dashboard() {
                       title={announcement.title}
                       content={announcement.content}
                       authorName={authorName}
-                      createdAt={dayjs(announcement.created_at).format('DD MMMM YYYY, HH:mm')}
+                      createdAt={dayjs.utc(announcement.created_at).local().fromNow()}
                       onReadMore={() => setSelectedAnnouncement(announcement)}
                     />
                   );
