@@ -65,10 +65,8 @@ export default function Dashboard() {
     mutationFn: (content: string) => {
       if (!user) {
         toast({
-          title: "Giriş Gerekli",
-          description: "Yorum yapmak için giriş yapmanız gerekiyor",
+          description: "Yorum yapmak için lütfen giriş yapın",
         });
-        setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
       return addAnnouncementComment(selectedAnnouncement!.id, content);
@@ -96,10 +94,8 @@ export default function Dashboard() {
     mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) => {
       if (!user) {
         toast({
-          title: "Giriş Gerekli",
-          description: "Oy vermek için giriş yapmanız gerekiyor",
+          description: "Oy vermek için lütfen giriş yapın",
         });
-        setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
       return votePoll(pollId, optionId);
