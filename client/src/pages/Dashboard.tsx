@@ -190,7 +190,7 @@ export default function Dashboard() {
                       createdAt={dayjs.utc(idea.created_at).local().fromNow()}
                       status={idea.status}
                       commentCount={idea.comments?.length || 0}
-                      onReadMore={() => setLocation("/fikirler")}
+                      onClick={() => setLocation("/fikirler")}
                     />
                   );
                 })}

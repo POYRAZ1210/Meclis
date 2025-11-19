@@ -15,6 +15,7 @@ interface IdeaCardProps {
   status: Status;
   commentCount: number;
   onReadMore?: () => void;
+  onClick?: () => void;
 }
 
 export default function IdeaCard({
@@ -26,9 +27,19 @@ export default function IdeaCard({
   status,
   commentCount,
   onReadMore,
+  onClick,
 }: IdeaCardProps) {
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (onReadMore) onReadMore();
+  };
+
   return (
-    <Card className="hover-elevate transition-all" data-testid="card-idea">
+    <Card 
+      className="hover-elevate transition-all cursor-pointer" 
+      data-testid="card-idea"
+      onClick={handleClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -69,7 +80,11 @@ export default function IdeaCard({
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={onReadMore}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onReadMore) onReadMore();
+            else if (onClick) onClick();
+          }}
           data-testid="button-read-idea"
         >
           Görüntüle
