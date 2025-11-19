@@ -1,4 +1,4 @@
-import { Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image } from "lucide-react";
+import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image } from "lucide-react";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,8 @@ export default function Header({
   const [location] = useLocation();
 
   const navItems = [
-    { path: "/", label: "Duyurular", icon: Bell },
+    { path: "/", label: "Ana Sayfa", icon: Home },
+    { path: "/duyurular", label: "Duyurular", icon: Bell },
     { path: "/bluten", label: "Blüten", icon: Image },
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
