@@ -3,12 +3,17 @@ import type { Idea } from '@shared/schema';
 
 export async function getIdeas() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (session) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
 
   const res = await fetch('/api/ideas', {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    },
+    headers,
     credentials: 'include',
   });
 
@@ -22,12 +27,17 @@ export async function getIdeas() {
 
 export async function getIdea(id: string) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (session) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
 
   const res = await fetch(`/api/ideas/${id}`, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    },
+    headers,
     credentials: 'include',
   });
 

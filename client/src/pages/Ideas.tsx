@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -323,26 +324,37 @@ export default function Ideas() {
                     )}
 
                     <div className="flex items-center gap-6 text-muted-foreground">
-                      <button
-                        onClick={() => likeMutation.mutate(idea.id)}
-                        className={`flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-1.5 transition-colors ${
-                          idea.user_has_liked ? 'text-primary' : ''
-                        }`}
-                        data-testid={`button-like-${idea.id}`}
-                      >
-                        <motion.div
-                          key={idea.user_has_liked ? 'liked' : 'unliked'}
-                          initial={{ scale: 1 }}
-                          animate={{ scale: [1, 1.3, 1] }}
-                          transition={{ 
-                            duration: 0.3,
-                            ease: "easeInOut"
-                          }}
-                        >
-                          <Heart className={`h-5 w-5 ${idea.user_has_liked ? 'fill-current' : ''}`} />
-                        </motion.div>
-                        <span className="text-sm font-medium">{idea.likes_count || 0}</span>
-                      </button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => likeMutation.mutate(idea.id)}
+                              className={`flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-1.5 transition-colors ${
+                                idea.user_has_liked ? 'text-primary' : ''
+                              }`}
+                              data-testid={`button-like-${idea.id}`}
+                            >
+                              <motion.div
+                                key={idea.user_has_liked ? 'liked' : 'unliked'}
+                                initial={{ scale: 1 }}
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ 
+                                  duration: 0.3,
+                                  ease: "easeInOut"
+                                }}
+                              >
+                                <Heart className={`h-5 w-5 ${idea.user_has_liked ? 'fill-current' : ''}`} />
+                              </motion.div>
+                              <span className="text-sm font-medium">{idea.likes_count || 0}</span>
+                            </button>
+                          </TooltipTrigger>
+                          {!user && (
+                            <TooltipContent>
+                              <p>Beğenmek için giriş yapın</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                       <button
                         onClick={() => setExpandedIdea(expandedIdea === idea.id ? null : idea.id)}
                         className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-1.5"
@@ -393,36 +405,45 @@ export default function Ideas() {
                         )}
 
                         {/* Comment Form */}
-                        <div className="flex gap-2">
-                          <Textarea
-                            placeholder="Yorum yaz..."
-                            value={commentText[idea.id] || ''}
-                            onChange={(e) => setCommentText({ ...commentText, [idea.id]: e.target.value })}
-                            className="min-h-[60px]"
-                            data-testid={`input-comment-${idea.id}`}
-                          />
-                          <Button
-                            onClick={() => {
-                              if (!commentText[idea.id]?.trim()) {
-                                toast({
-                                  title: "Eksik bilgi",
-                                  description: "Yorum boş olamaz.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              commentMutation.mutate({ ideaId: idea.id, content: commentText[idea.id] });
-                            }}
-                            disabled={commentMutation.isPending}
-                            data-testid={`button-submit-comment-${idea.id}`}
-                          >
-                            {commentMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                        {user ? (
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Yorum yaz..."
+                              value={commentText[idea.id] || ''}
+                              onChange={(e) => setCommentText({ ...commentText, [idea.id]: e.target.value })}
+                              className="min-h-[60px]"
+                              data-testid={`input-comment-${idea.id}`}
+                            />
+                            <Button
+                              onClick={() => {
+                                if (!commentText[idea.id]?.trim()) {
+                                  toast({
+                                    title: "Eksik bilgi",
+                                    description: "Yorum boş olamaz.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                commentMutation.mutate({ ideaId: idea.id, content: commentText[idea.id] });
+                              }}
+                              disabled={commentMutation.isPending}
+                              data-testid={`button-submit-comment-${idea.id}`}
+                            >
+                              {commentMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-muted-foreground mb-2">Yorum yapmak için giriş yapın</p>
+                            <Button variant="outline" size="sm" onClick={() => setLocation("/giris")} data-testid="button-login-to-comment">
+                              Giriş Yap
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
