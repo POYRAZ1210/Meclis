@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +21,13 @@ export default function Login() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const handlePasswordReset = async () => {
     // Validate new password
