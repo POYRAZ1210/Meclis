@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "../server/routes";
 import { serveStatic } from "../server/vite";
+import { instagramService } from "../server/services/instagram";
 
 const app = express();
 
@@ -19,5 +20,11 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // Serve static files in production
 serveStatic(app);
+
+// Initialize Instagram service for Vercel (serverless)
+// This will run on each cold start, but the service handles initialization gracefully
+if (process.env.VERCEL) {
+  instagramService.startAutoSync();
+}
 
 export default app;

@@ -135,13 +135,45 @@ Preferred communication style: Simple, everyday language.
 - **Drizzle Kit**: Database migrations and schema management
 - **PostCSS + Autoprefixer**: CSS processing
 
-**Deployment Environment**:
-- Designed for Replit deployment
-- Node.js 20+ runtime
-- Environment variable configuration via Replit Secrets
-- Single command deployment with `npm run dev`
+**Deployment Environments**:
+
+1. **Development (Replit)**:
+   - Entry point: `server/index.ts`
+   - Node.js 20+ runtime
+   - Environment variable configuration via Replit Secrets
+   - Single command: `npm run dev`
+   - Always-on server on port 5000
+   - Instagram auto-sync enabled
+
+2. **Production - Render**:
+   - Entry point: `server/index.ts` → `dist/index.js`
+   - Always-on Node.js server
+   - Build: `npm run build`
+   - Start: `npm start`
+   - Persistent connections and background jobs supported
+   - Instagram auto-sync active
+
+3. **Production - Vercel (Alternative)**:
+   - Entry point: `api/index.ts`
+   - Serverless functions architecture
+   - Build: `npm run build` → `dist/public/`
+   - Frontend: CDN static hosting (very fast)
+   - API: Serverless functions under `/api`
+   - Cold start latency (~2-3s first request)
+   - Instagram auto-sync limited (runs on cold starts)
+   - See `VERCEL_DEPLOYMENT_GUIDE.md` for details
+
+**Dual Deployment Strategy**:
+- **Render**: Used for backend with background jobs (Instagram sync)
+- **Vercel**: Can be used for fast global frontend hosting via CDN
+- Both can access same Supabase database
+- Files organized to support both platforms without conflicts:
+  - `server/` for Render (traditional Node.js)
+  - `api/` for Vercel (serverless)
+  - `client/` for both (Vite build)
 
 **API Integrations**:
 - Supabase REST API for authentication operations
 - Supabase PostgreSQL connection for data operations
 - Session-based API authentication (credentials included in fetch)
+- Instagram Graph API for Blüten content synchronization

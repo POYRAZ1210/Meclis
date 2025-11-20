@@ -1,0 +1,43 @@
+# Development files
+.env.local
+.env.development
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts (except production)
+dist/
+.cache/
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQL migration files (already applied to production DB)
+*.sql
+migrations/
+
+# Documentation
+*.md
+!README.md
+
+# Server-only files (Vercel uses api/index.ts)
+server/
+
+# Replit specific
+.replit
+replit.nix
