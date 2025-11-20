@@ -199,8 +199,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear ALL cache on sign out (prevents data leakage between users)
     queryClient.clear();
     
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      // Ignore "Auth session missing" error - we're signing out anyway
+      if (error && !error.message?.includes('Auth session missing')) {
+        throw error;
+      }
+    } catch (err: any) {
+      // Ignore session missing errors during sign out
+      if (!err.message?.includes('Auth session missing')) {
+        throw err;
+      }
+    }
   }
 
   const value = {
