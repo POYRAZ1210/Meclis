@@ -95,9 +95,11 @@ vercel --prod
 
 3. **Build Ayarları (Otomatik Algılanır)**
    - **Framework Preset**: Other
-   - **Build Command**: `npm run build`
+   - **Build Command**: `vite build` (sadece frontend)
    - **Output Directory**: `dist/public`
    - **Install Command**: `npm install`
+   
+   **Not**: Backend (`api/index.ts`) Vercel tarafından otomatik build edilir!
 
 4. **Environment Variables Ekleyin**
    ```
