@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Search, Loader2 } from "lucide-react";
+import { Bell, Plus, Search, Loader2, FileText, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -183,6 +183,8 @@ export default function Announcements() {
                 content={announcement.content}
                 authorName={authorName}
                 createdAt={dayjs.utc(announcement.created_at).local().fromNow()}
+                attachmentUrl={announcement.attachment_url}
+                attachmentType={announcement.attachment_type}
                 onReadMore={() => setSelectedAnnouncement(announcement)}
               />
             );
@@ -209,6 +211,23 @@ export default function Announcements() {
           <div className="flex-1 overflow-y-auto pr-2">
             <div className="py-4">
               <p className="text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+              
+              {/* Attachment Download */}
+              {selectedAnnouncement?.attachment_url && 
+               (selectedAnnouncement?.attachment_type === 'pdf' || selectedAnnouncement?.attachment_type === 'document') && (
+                <a 
+                  href={selectedAnnouncement.attachment_url} 
+                  download 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                  data-testid="link-download-attachment-modal"
+                >
+                  <FileText className="h-4 w-4" />
+                  {selectedAnnouncement.attachment_type === 'pdf' ? 'PDF Dosyası' : 'Doküman'} İndir
+                  <Download className="h-4 w-4" />
+                </a>
+              )}
             </div>
 
             {/* Comments Section */}

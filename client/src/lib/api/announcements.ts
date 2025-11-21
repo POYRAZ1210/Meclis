@@ -7,6 +7,8 @@ export interface Announcement {
   author_id: string;
   target_audience: 'all' | 'class_presidents';
   created_at: string;
+  attachment_url?: string;
+  attachment_type?: string;
   author?: {
     first_name: string | null;
     last_name: string | null;

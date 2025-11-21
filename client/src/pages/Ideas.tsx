@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
@@ -351,6 +351,21 @@ export default function Ideas() {
                         controls
                         className="rounded-lg mb-4 max-h-96 w-full"
                       />
+                    )}
+                    
+                    {idea.attachment_url && (idea.attachment_type === 'pdf' || idea.attachment_type === 'document') && (
+                      <a 
+                        href={idea.attachment_url} 
+                        download 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors text-sm"
+                        data-testid={`link-download-attachment-${idea.id}`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        {idea.attachment_type === 'pdf' ? 'PDF Dosyası' : 'Doküman'} İndir
+                        <Download className="h-4 w-4" />
+                      </a>
                     )}
 
                     <div className="flex items-center gap-6 text-muted-foreground">
