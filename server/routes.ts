@@ -882,7 +882,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { data: ideas, error } = await supabase
         .from('ideas')
-        .select('*, author:profiles!ideas_author_id_fkey(first_name, last_name, class_name), comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name))')
+        .select(`
+          *,
+          author:profiles!ideas_author_id_fkey(first_name, last_name, class_name),
+          comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name))
+        `)
         .eq('status', 'approved')
         .eq('comments.status', 'approved')
         .order('created_at', { ascending: false });
