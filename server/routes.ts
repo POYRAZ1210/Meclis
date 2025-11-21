@@ -1002,6 +1002,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validated.video_url) {
         insertData.video_url = validated.video_url;
       }
+      if (validated.attachment_url) {
+        insertData.attachment_url = validated.attachment_url;
+      }
+      if (validated.attachment_type) {
+        insertData.attachment_type = validated.attachment_type;
+      }
 
       const { data: idea, error } = await supabaseAdmin
         .from('ideas')
