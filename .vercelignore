@@ -35,9 +35,10 @@ migrations/
 *.md
 !README.md
 
-# Server-only files (Vercel uses api/index.ts)
-server/
-
 # Replit specific
 .replit
 replit.nix
+
+# NOTE: server/ and shared/ folders are REQUIRED by api/index.ts
+# They contain routes, services, and schemas that are imported
+# DO NOT add server/ or shared/ to .vercelignore!

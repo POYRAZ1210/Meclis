@@ -99,7 +99,10 @@ vercel --prod
    - **Output Directory**: `dist/public`
    - **Install Command**: `npm install`
    
-   **Not**: Backend (`api/index.ts`) Vercel tarafından otomatik build edilir!
+   **ÖNEMLİ NOTLAR**:
+   - Backend (`api/index.ts`) Vercel tarafından otomatik build edilir
+   - `server/` ve `shared/` klasörleri **ZORUNLU** (api/index.ts bunları import ediyor)
+   - `.vercelignore` dosyasında `server/` veya `shared/` OLMAMALI!
 
 4. **Environment Variables Ekleyin**
    ```
