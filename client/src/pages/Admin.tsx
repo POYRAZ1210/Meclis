@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download } from "lucide-react";
 import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
@@ -905,6 +905,25 @@ export default function Admin() {
                     controls
                     className="w-full rounded-lg border"
                   />
+                </div>
+              )}
+
+              {/* PDF/Document Attachment */}
+              {selectedIdea.attachment_url && (selectedIdea.attachment_type === 'pdf' || selectedIdea.attachment_type === 'document') && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Ek Dosya:</p>
+                  <a 
+                    href={selectedIdea.attachment_url} 
+                    download 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                    data-testid="link-download-attachment-admin-idea"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {selectedIdea.attachment_type === 'pdf' ? 'PDF Dosyası' : 'Doküman'} İndir
+                    <Download className="h-4 w-4" />
+                  </a>
                 </div>
               )}
 
