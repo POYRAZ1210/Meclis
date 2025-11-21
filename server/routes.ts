@@ -18,14 +18,29 @@ import {
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { 
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 25 * 1024 * 1024, // 25MB limit (increased for PDFs)
   },
   fileFilter: (_req, file, cb) => {
-    // Allow images and videos
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    // Allow images, videos, and documents (PDF, DOC, DOCX, etc.)
+    const allowedMimeTypes = [
+      'image/',
+      'video/',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+    ];
+    
+    const isAllowed = allowedMimeTypes.some(type => file.mimetype.startsWith(type) || file.mimetype === type);
+    
+    if (isAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Sadece resim ve video dosyaları yüklenebilir'));
+      cb(new Error('Sadece resim, video ve doküman dosyaları (PDF, Word, Excel, PowerPoint) yüklenebilir'));
     }
   },
 });
@@ -793,7 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FILE UPLOAD
   // ============================================
   
-  // Upload image or video
+  // Upload image, video, or document (PDF, Word, etc.)
   app.post('/api/upload', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
@@ -830,9 +845,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from('ideas-media')
         .getPublicUrl(filePath);
 
+      // Determine file type for response
+      let fileType: 'image' | 'video' | 'pdf' | 'document' = 'document';
+      if (file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (file.mimetype.startsWith('video/')) {
+        fileType = 'video';
+      } else if (file.mimetype === 'application/pdf') {
+        fileType = 'pdf';
+      }
+
       res.json({ 
         url: publicUrl,
-        type: file.mimetype.startsWith('image/') ? 'image' : 'video',
+        type: fileType,
       });
     } catch (error: any) {
       console.error('Error uploading file:', error);

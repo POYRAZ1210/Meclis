@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertAnnouncementSchema, type InsertAnnouncement } from "@shared/schema";
 import { supabase } from "@/lib/supabase";
-import { Pencil } from "lucide-react";
+import { Pencil, Upload, FileText, X } from "lucide-react";
 import { updateAnnouncement } from "@/lib/api/announcements";
+import FileUpload from "@/components/FileUpload";
 
 interface AnnouncementFormProps {
   existingAnnouncement?: {
@@ -24,6 +26,8 @@ interface AnnouncementFormProps {
 
 export default function AnnouncementForm({ existingAnnouncement }: AnnouncementFormProps) {
   const [open, setOpen] = useState(false);
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'pdf' | 'document' | undefined>();
   const { toast } = useToast();
   const isEditMode = !!existingAnnouncement;
 
@@ -32,6 +36,7 @@ export default function AnnouncementForm({ existingAnnouncement }: AnnouncementF
     defaultValues: {
       title: existingAnnouncement?.title || "",
       content: existingAnnouncement?.content || "",
+      target_audience: "all",
     },
   });
 
@@ -46,8 +51,14 @@ export default function AnnouncementForm({ existingAnnouncement }: AnnouncementF
 
   const mutation = useMutation({
     mutationFn: async (data: InsertAnnouncement) => {
+      const payload = {
+        ...data,
+        attachment_url: attachmentUrl || undefined,
+        attachment_type: attachmentType || undefined,
+      };
+      
       if (isEditMode && existingAnnouncement) {
-        return updateAnnouncement(existingAnnouncement.id, data.title, data.content);
+        return updateAnnouncement(existingAnnouncement.id, payload.title, payload.content);
       } else {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Not authenticated");
@@ -59,7 +70,7 @@ export default function AnnouncementForm({ existingAnnouncement }: AnnouncementF
             'Authorization': `Bearer ${session.access_token}`,
           },
           credentials: 'include',
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -78,6 +89,8 @@ export default function AnnouncementForm({ existingAnnouncement }: AnnouncementF
       });
       setOpen(false);
       form.reset();
+      setAttachmentUrl("");
+      setAttachmentType(undefined);
     },
     onError: (error: any) => {
       toast({
@@ -131,6 +144,62 @@ export default function AnnouncementForm({ existingAnnouncement }: AnnouncementF
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="target_audience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hedef Kitle</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-target-audience">
+                        <SelectValue placeholder="Hedef kitle seçin" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="all">Tüm Öğrenciler</SelectItem>
+                      <SelectItem value="class_presidents">Sınıf Başkanları</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-2">
+              <FormLabel>Dosya Ekle (Opsiyonel)</FormLabel>
+              <FileUpload
+                onUploadComplete={(url, type) => {
+                  setAttachmentUrl(url);
+                  setAttachmentType(type);
+                  toast({
+                    title: "Dosya yüklendi",
+                    description: "Dosya başarıyla yüklendi",
+                  });
+                }}
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              />
+              {attachmentUrl && (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                  <FileText className="h-4 w-4" />
+                  <span className="text-sm flex-1 truncate">{attachmentType === 'pdf' ? 'PDF' : attachmentType === 'document' ? 'Doküman' : 'Medya'} dosyası</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setAttachmentUrl("");
+                      setAttachmentType(undefined);
+                    }}
+                    data-testid="button-remove-attachment"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
                 İptal

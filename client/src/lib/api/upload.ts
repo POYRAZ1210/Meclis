@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export async function uploadFile(file: File): Promise<{ url: string; type: 'image' | 'video' }> {
+export async function uploadFile(file: File): Promise<{ url: string; type: 'image' | 'video' | 'pdf' | 'document' }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Giriş yapmanız gerekiyor');
 

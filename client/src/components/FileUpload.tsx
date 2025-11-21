@@ -5,22 +5,26 @@ import { uploadFile } from "@/lib/api/upload";
 import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
-  onUploadComplete: (url: string, type: 'image' | 'video') => void;
-  type: 'image' | 'video';
+  onUploadComplete: (url: string, type: 'image' | 'video' | 'pdf' | 'document') => void;
+  type?: 'image' | 'video' | 'all';
   currentUrl?: string;
   onRemove?: () => void;
+  accept?: string;
 }
 
-export default function FileUpload({ onUploadComplete, type, currentUrl, onRemove }: FileUploadProps) {
+export default function FileUpload({ onUploadComplete, type = 'all', currentUrl, onRemove, accept }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+  const { toast} = useToast();
 
   const handleFileChange = async (file: File) => {
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
+    const isPdf = file.type === 'application/pdf';
+    const isDocument = file.type.startsWith('application/');
 
+    // Validate file type if specific type is required
     if (type === 'image' && !isImage) {
       toast({
         variant: "destructive",
@@ -43,10 +47,6 @@ export default function FileUpload({ onUploadComplete, type, currentUrl, onRemov
     try {
       const result = await uploadFile(file);
       onUploadComplete(result.url, result.type);
-      toast({
-        title: "Başarılı",
-        description: "Dosya yüklendi",
-      });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -89,7 +89,7 @@ export default function FileUpload({ onUploadComplete, type, currentUrl, onRemov
       <input
         ref={fileInputRef}
         type="file"
-        accept={type === 'image' ? 'image/*' : 'video/*'}
+        accept={accept || (type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx')}
         onChange={handleInputChange}
         className="hidden"
         data-testid={`input-file-${type}`}
@@ -143,14 +143,16 @@ export default function FileUpload({ onUploadComplete, type, currentUrl, onRemov
             <div className="flex flex-col items-center gap-2">
               {type === 'image' ? (
                 <ImageIcon className="h-8 w-8 text-muted-foreground" />
-              ) : (
+              ) : type === 'video' ? (
                 <Video className="h-8 w-8 text-muted-foreground" />
+              ) : (
+                <Upload className="h-8 w-8 text-muted-foreground" />
               )}
               <div className="text-sm text-muted-foreground">
                 <p className="font-medium">
-                  {type === 'image' ? 'Resim' : 'Video'} sürükleyin veya tıklayın
+                  {type === 'image' ? 'Resim' : type === 'video' ? 'Video' : 'Dosya'} sürükleyin veya tıklayın
                 </p>
-                <p className="text-xs mt-1">Maksimum 10MB</p>
+                <p className="text-xs mt-1">Maksimum 25MB</p>
               </div>
             </div>
           )}

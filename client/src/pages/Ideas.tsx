@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
@@ -33,6 +33,8 @@ export default function Ideas() {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'pdf' | 'document' | undefined>();
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const { toast } = useToast();
@@ -45,7 +47,7 @@ export default function Ideas() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string }) => {
+    mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string; attachmentUrl?: string; attachmentType?: string }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -62,6 +64,8 @@ export default function Ideas() {
       setContent("");
       setImageUrl("");
       setVideoUrl("");
+      setAttachmentUrl("");
+      setAttachmentType(undefined);
       setOpen(false);
       toast({
         title: "Fikir gönderildi!",
@@ -178,7 +182,14 @@ export default function Ideas() {
       return;
     }
 
-    createMutation.mutate({ title, content, imageUrl: imageUrl || undefined, videoUrl: videoUrl || undefined });
+    createMutation.mutate({ 
+      title, 
+      content, 
+      imageUrl: imageUrl || undefined, 
+      videoUrl: videoUrl || undefined,
+      attachmentUrl: attachmentUrl || undefined,
+      attachmentType: attachmentType || undefined,
+    });
   };
 
   if (isLoading) {
@@ -223,14 +234,18 @@ export default function Ideas() {
               />
               
               <Tabs defaultValue="image" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="image" className="flex items-center gap-2">
                     <Image className="h-4 w-4" />
-                    Görsel Yükle
+                    Görsel
                   </TabsTrigger>
                   <TabsTrigger value="video" className="flex items-center gap-2">
                     <Video className="h-4 w-4" />
-                    Video Yükle
+                    Video
+                  </TabsTrigger>
+                  <TabsTrigger value="document" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    PDF/Doküman
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="image" className="mt-4">
@@ -247,6 +262,21 @@ export default function Ideas() {
                     currentUrl={videoUrl}
                     onUploadComplete={(url) => setVideoUrl(url)}
                     onRemove={() => setVideoUrl("")}
+                  />
+                </TabsContent>
+                <TabsContent value="document" className="mt-4">
+                  <FileUpload
+                    type="all"
+                    currentUrl={attachmentUrl}
+                    onUploadComplete={(url, type) => {
+                      setAttachmentUrl(url);
+                      setAttachmentType(type);
+                    }}
+                    onRemove={() => {
+                      setAttachmentUrl("");
+                      setAttachmentType(undefined);
+                    }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                   />
                 </TabsContent>
               </Tabs>

@@ -25,6 +25,8 @@ export const announcements = pgTable("announcements", {
   content: text("content").notNull(),
   author_id: varchar("author_id"),
   target_audience: text("target_audience").notNull().default("all"),
+  attachment_url: text("attachment_url"),
+  attachment_type: text("attachment_type"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -59,6 +61,8 @@ export const ideas = pgTable("ideas", {
   author_id: varchar("author_id").notNull(),
   image_url: text("image_url"),
   video_url: text("video_url"),
+  attachment_url: text("attachment_url"),
+  attachment_type: text("attachment_type"),
   likes_count: integer("likes_count").notNull().default(0),
   reviewed_by: varchar("reviewed_by"),
   reviewed_at: timestamp("reviewed_at"),
@@ -158,6 +162,8 @@ export const insertAnnouncementSchema = z.object({
   content: z.string().min(10, "İçerik en az 10 karakter olmalı"),
   author_id: z.string().uuid().optional(),
   target_audience: z.enum(['all', 'class_presidents']).default('all'),
+  attachment_url: z.string().optional(),
+  attachment_type: z.enum(['image', 'video', 'pdf', 'document']).optional(),
 });
 
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
@@ -168,6 +174,8 @@ export interface Announcement {
   content: string;
   author_id?: string;
   target_audience: 'all' | 'class_presidents';
+  attachment_url?: string;
+  attachment_type?: 'image' | 'video' | 'pdf' | 'document';
   created_at: string;
 }
 
@@ -207,6 +215,8 @@ export const insertIdeaSchema = z.object({
   author_id: z.string().uuid(),
   image_url: z.string().url().optional().or(z.literal('')),
   video_url: z.string().url().optional().or(z.literal('')),
+  attachment_url: z.string().optional(),
+  attachment_type: z.enum(['image', 'video', 'pdf', 'document']).optional(),
 });
 
 export type InsertIdea = z.infer<typeof insertIdeaSchema>;
@@ -219,6 +229,8 @@ export interface Idea {
   author_id: string;
   image_url?: string;
   video_url?: string;
+  attachment_url?: string;
+  attachment_type?: 'image' | 'video' | 'pdf' | 'document';
   likes_count: number;
   reviewed_by?: string;
   reviewed_at?: string;

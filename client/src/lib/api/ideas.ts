@@ -49,9 +49,26 @@ export async function getIdea(id: string) {
   return res.json();
 }
 
-export async function createIdea(data: { title: string; content: string; image_url?: string; video_url?: string }) {
+export async function createIdea(data: { 
+  title: string; 
+  content: string; 
+  imageUrl?: string; 
+  videoUrl?: string;
+  attachmentUrl?: string;
+  attachmentType?: string;
+}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
+
+  // Map frontend field names to backend schema
+  const payload = {
+    title: data.title,
+    content: data.content,
+    image_url: data.imageUrl,
+    video_url: data.videoUrl,
+    attachment_url: data.attachmentUrl,
+    attachment_type: data.attachmentType,
+  };
 
   const res = await fetch('/api/ideas', {
     method: 'POST',
@@ -60,7 +77,7 @@ export async function createIdea(data: { title: string; content: string; image_u
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
