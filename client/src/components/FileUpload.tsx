@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, Image as ImageIcon, Video } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadFile } from "@/lib/api/upload";
 import { useToast } from "@/hooks/use-toast";
@@ -103,12 +103,17 @@ export default function FileUpload({ onUploadComplete, type = 'all', currentUrl,
               alt="Preview" 
               className="w-full h-40 object-cover rounded-md"
             />
-          ) : (
+          ) : type === 'video' ? (
             <video 
               src={currentUrl} 
               controls 
               className="w-full h-40 rounded-md"
             />
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+              <FileText className="h-5 w-5 text-primary" />
+              <span className="text-sm flex-1">Dosya yüklendi</span>
+            </div>
           )}
           {onRemove && (
             <Button
