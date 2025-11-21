@@ -52,7 +52,7 @@ export default function BlutenForm() {
       queryClient.invalidateQueries({ queryKey: ["/api/bluten"] });
       toast({
         title: "Başarılı",
-        description: "Blüten içeriği eklendi",
+        description: "Bülten içeriği eklendi",
       });
       setOpen(false);
       form.reset();
@@ -73,7 +73,7 @@ export default function BlutenForm() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Manuel Blüten İçeriği Ekle</DialogTitle>
+          <DialogTitle>Manuel Bülten İçeriği Ekle</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">

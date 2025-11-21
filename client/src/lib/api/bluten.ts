@@ -120,7 +120,7 @@ export async function getAdminBlutenPosts(): Promise<BlutenPost[]> {
 
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.error || 'Blüten içerikleri yüklenirken hata oluştu');
+    throw new Error(error.error || 'Bülten içerikleri yüklenirken hata oluştu');
   }
 
   return res.json() as Promise<BlutenPost[]>;

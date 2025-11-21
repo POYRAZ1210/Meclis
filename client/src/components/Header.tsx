@@ -29,7 +29,7 @@ export default function Header({
   const navItems = [
     { path: "/", label: "Ana Sayfa", icon: Home },
     { path: "/duyurular", label: "Duyurular", icon: Bell },
-    { path: "/bluten", label: "Blüten", icon: Image },
+    { path: "/bluten", label: "Bülten", icon: Image },
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
   ];

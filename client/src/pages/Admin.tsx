@@ -561,7 +561,7 @@ export default function Admin() {
         <TabsContent value="bluten">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Blüten Yönetimi ({allBlutenPosts?.length || 0})</CardTitle>
+              <CardTitle>Bülten Yönetimi ({allBlutenPosts?.length || 0})</CardTitle>
               <BlutenForm />
             </CardHeader>
             <CardContent>
@@ -618,7 +618,7 @@ export default function Admin() {
                   </TableBody>
                 </Table>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">Henüz Blüten içeriği yok</p>
+                <p className="text-sm text-muted-foreground text-center py-8">Henüz Bülten içeriği yok</p>
               )}
             </CardContent>
           </Card>

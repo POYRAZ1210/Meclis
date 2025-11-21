@@ -28,7 +28,7 @@ export default function Bluten() {
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
               <ImageIcon className="h-8 w-8 text-primary" />
-              Blüten
+              Bülten
             </h1>
             <p className="text-muted-foreground">
               Maya Meclisi görsel içerikleri ve etkinlikler
@@ -96,7 +96,7 @@ export default function Bluten() {
         <EmptyState
           icon={ImageIcon}
           title="Henüz içerik yok"
-          description="İlk Blüten içeriği eklendiğinde burada görünecek."
+          description="İlk Bülten içeriği eklendiğinde burada görünecek."
         />
       )}
 
@@ -104,7 +104,7 @@ export default function Bluten() {
       {isAdmin && (!posts || posts.length === 0) && (
         <Card className="mt-6 border-dashed">
           <CardContent className="p-6">
-            <h3 className="font-semibold mb-2">Blüten Nasıl Kullanılır?</h3>
+            <h3 className="font-semibold mb-2">Bülten Nasıl Kullanılır?</h3>
             <ul className="text-sm text-muted-foreground space-y-2">
               <li>• Instagram tarzı görsel içerikler paylaşın</li>
               <li>• Etkinlik afişleri, duyuru görselleri ekleyin</li>
