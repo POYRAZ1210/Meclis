@@ -92,6 +92,13 @@ Preferred communication style: Simple, everyday language.
 - Connection through `@supabase/supabase-js` client library
 - Neon serverless PostgreSQL as alternative option (`@neondatabase/serverless`)
 
+**File Storage**: Supabase Storage
+- Bucket: `ideas-media` for idea/announcement media uploads
+- Public access for viewing, authenticated access for uploading
+- File types: Images and videos (max 10MB)
+- Upload endpoint: `/api/upload` using multer with memory storage
+- Files stored with unique names: `{userId}-{timestamp}.{ext}`
+
 **ORM**: Drizzle ORM
 - Schema defined in `shared/schema.ts`
 - Migration files in `./migrations` directory
