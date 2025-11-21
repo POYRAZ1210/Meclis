@@ -5,8 +5,9 @@ import { instagramService } from "../server/services/instagram";
 
 const app = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Increase body size limits for file uploads (Vercel max: 4.5MB)
+app.use(express.json({ limit: '4mb' }));
+app.use(express.urlencoded({ extended: false, limit: '4mb' }));
 
 // Health check endpoint for debugging
 app.get('/api/health', (_req: Request, res: Response) => {
