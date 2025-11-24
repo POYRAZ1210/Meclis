@@ -74,6 +74,20 @@ Preferred communication style: Simple, everyday language.
 - Session management with JWT tokens
 - Client-side auth state via AuthContext
 
+**Password Reset Flow**:
+- User requests password reset at `/sifre-sifirla` (forgot password page)
+- Supabase sends email with recovery link to `/auth/reset` route
+- ResetPassword page validates recovery token and shows password update form
+- User sets new password via Supabase `updateUser()` API
+- Environment variable `VITE_APP_URL` controls redirect domain:
+  - Development: `http://localhost:5000`
+  - Production: `https://meclis.onrender.com`
+
+**Supabase Configuration Required**:
+- Add to **Allowed Redirect URLs** in Supabase Dashboard → Authentication → URL Configuration:
+  - `http://localhost:5000/auth/reset` (development)
+  - `https://meclis.onrender.com/auth/reset` (production)
+
 **Authorization Pattern**:
 - Role-based access control (admin, teacher, student)
 - Protected routes component wrapping pages

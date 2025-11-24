@@ -39,10 +39,6 @@ localPort = 44001
 externalPort = 3002
 
 [[ports]]
-localPort = 44277
-externalPort = 6000
-
-[[ports]]
 localPort = 45651
 externalPort = 3000
 
@@ -74,3 +70,6 @@ waitForPort = 5000
 
 [userenv.development]
 VITE_APP_URL = "http://localhost:5000"
+
+[userenv.production]
+VITE_APP_URL = "https://meclis.onrender.com"

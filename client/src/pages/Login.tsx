@@ -3,11 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 
 export default function Login() {
@@ -17,10 +15,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
 
   // Redirect to home if already logged in
   useEffect(() => {
@@ -28,81 +22,6 @@ export default function Login() {
       setLocation("/");
     }
   }, [user, setLocation]);
-
-  // Check for recovery token in URL hash (from Supabase email link)
-  useEffect(() => {
-    const handleRecoveryToken = async () => {
-      const hash = window.location.hash.substring(1);
-      if (hash) {
-        const params = new URLSearchParams(hash);
-        const accessToken = params.get('access_token');
-        const type = params.get('type');
-        
-        if (type === 'recovery' && accessToken) {
-          // Set session with recovery token
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: '',
-          });
-          
-          if (!error) {
-            setShowPasswordReset(true);
-            // Clean up URL
-            window.history.replaceState({}, document.title, "/giris");
-          }
-        }
-      }
-    };
-    
-    handleRecoveryToken();
-  }, []);
-
-  const handlePasswordReset = async () => {
-    // Validate new password
-    if (newPassword.length < 8) {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Şifre en az 8 karakter olmalıdır",
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Şifreler eşleşmiyor",
-      });
-      return;
-    }
-
-    setResetLoading(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Başarılı",
-        description: "Şifreniz güncellendi, yönlendiriliyorsunuz...",
-      });
-
-      setShowPasswordReset(false);
-      setLocation("/");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Şifre güncellenirken bir hata oluştu",
-      });
-    } finally {
-      setResetLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,20 +42,6 @@ export default function Login() {
     try {
       const result = await signIn(email, password);
       
-      // Check if user needs to change password (first login detection)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const createdAt = new Date(user.created_at);
-        const now = new Date();
-        const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-        
-        // If account created less than 24 hours ago, force password change
-        if (hoursSinceCreation < 24) {
-          setShowPasswordReset(true);
-          return;
-        }
-      }
-      
       toast({
         title: "Başarılı",
         description: "Giriş yapıldı, yönlendiriliyorsunuz...",
@@ -154,106 +59,59 @@ export default function Login() {
   };
 
   return (
-    <>
-      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-center mb-4">
-              <img 
-                src={mayaLogo} 
-                alt="Maya Okulları" 
-                className="h-12 w-12 object-contain"
-              />
-            </div>
-            <CardTitle className="text-2xl text-center">Maya Meclisi</CardTitle>
-            <CardDescription className="text-center">
-              Hesabınıza giriş yapın
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit} noValidate>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-posta</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="soyad-isim@mayaokullari.k12.tr"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  data-testid="input-email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Şifre</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  data-testid="input-password"
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
-                {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
-              </Button>
-              <Link href="/sifre-sifirla">
-                <Button variant="ghost" className="w-full text-xs" data-testid="button-forgot-password">
-                  Şifremi Unutum
-                </Button>
-              </Link>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-
-      <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Yeni Şifre Belirle</DialogTitle>
-            <DialogDescription>
-              Yeni şifreniz en az 8 karakter olmalıdır.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">Yeni Şifre</Label>
-              <Input
-                id="new-password"
-                type="password"
-                placeholder="En az 8 karakter"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                data-testid="input-new-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Yeni Şifre (Tekrar)</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                placeholder="Şifreyi tekrar girin"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                data-testid="input-confirm-password"
-              />
-            </div>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src={mayaLogo} 
+              alt="Maya Okulları" 
+              className="h-12 w-12 object-contain"
+            />
           </div>
-          <DialogFooter>
-            <Button 
-              onClick={handlePasswordReset} 
-              disabled={resetLoading}
-              className="w-full"
-              data-testid="button-reset-password"
-            >
-              {resetLoading ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+          <CardTitle className="text-2xl text-center">Maya Meclisi</CardTitle>
+          <CardDescription className="text-center">
+            Hesabınıza giriş yapın
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit} noValidate>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-posta</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="soyad-isim@mayaokullari.k12.tr"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                data-testid="input-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Şifre</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                data-testid="input-password"
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3">
+            <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
+              {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            <Link href="/sifre-sifirla">
+              <Button variant="ghost" className="w-full text-xs" data-testid="button-forgot-password">
+                Şifremi Unutum
+              </Button>
+            </Link>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
   );
 }
