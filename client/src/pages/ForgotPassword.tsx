@@ -32,28 +32,11 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      // Sign in anonymously to reset password without email verification
-      const { data, error } = await supabase.auth.signInAnonymously();
-      
-      if (error) throw error;
-
-      // Now we have a session, try to update password for the email
-      // This is a workaround - we'll use resetPasswordForEmail but handle it differently
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/giris`,
       });
 
-      if (resetError && resetError.message.includes("not found")) {
-        toast({
-          variant: "destructive",
-          title: "Hata",
-          description: "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı",
-        });
-        return;
-      }
-
-      // Sign out from anonymous session
-      await supabase.auth.signOut();
+      if (error) throw error;
 
       toast({
         title: "Başarılı",
