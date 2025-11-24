@@ -21,7 +21,6 @@ export default function Login() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   // Redirect to home if already logged in
   useEffect(() => {
@@ -30,25 +29,23 @@ export default function Login() {
     }
   }, [user, setLocation]);
 
-  // Check for recovery token in URL
+  // Check for recovery token in URL hash (from Supabase email link)
   useEffect(() => {
-    const checkRecoveryMode = async () => {
-      // Check if this is a recovery link from email
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("type") === "recovery") {
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-          const params = new URLSearchParams(hash);
-          const accessToken = params.get('access_token');
+    const handleRecoveryToken = async () => {
+      const hash = window.location.hash.substring(1);
+      if (hash) {
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get('access_token');
+        const type = params.get('type');
+        
+        if (type === 'recovery' && accessToken) {
+          // Set session with recovery token
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: '',
+          });
           
-          if (accessToken) {
-            // Set session with recovery token
-            await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: '',
-            });
-            
-            setIsRecoveryMode(true);
+          if (!error) {
             setShowPasswordReset(true);
             // Clean up URL
             window.history.replaceState({}, document.title, "/giris");
@@ -57,7 +54,7 @@ export default function Login() {
       }
     };
     
-    checkRecoveryMode();
+    handleRecoveryToken();
   }, []);
 
   const handlePasswordReset = async () => {
@@ -213,12 +210,11 @@ export default function Login() {
         </Card>
       </div>
 
-      <Dialog open={showPasswordReset} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+      <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Şifre Değiştirme Zorunlu</DialogTitle>
+            <DialogTitle>Yeni Şifre Belirle</DialogTitle>
             <DialogDescription>
-              İlk giriş yaptığınız için güvenlik amacıyla şifrenizi değiştirmeniz gerekmektedir. 
               Yeni şifreniz en az 8 karakter olmalıdır.
             </DialogDescription>
           </DialogHeader>
