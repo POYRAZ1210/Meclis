@@ -16,6 +16,7 @@ import Admin from "@/pages/Admin";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -56,6 +57,7 @@ function Router() {
       <Switch>
         <Route path="/giris" component={Login} />
         <Route path="/kayit" component={Register} />
+        <Route path="/sifre-sifirla" component={ForgotPassword} />
         <Route path="/">
           <ProtectedRoute requireAuth={false}>
             <Dashboard />

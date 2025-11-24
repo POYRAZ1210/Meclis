@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -168,10 +168,15 @@ export default function Login() {
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+            <CardFooter className="flex flex-col gap-3">
               <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
                 {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
               </Button>
+              <Link href="/sifre-sifirla">
+                <Button variant="ghost" className="w-full text-xs" data-testid="button-forgot-password">
+                  Şifremi Unutum
+                </Button>
+              </Link>
             </CardFooter>
           </form>
         </Card>
