@@ -27,10 +27,14 @@ export default function ForgotPassword() {
       try {
         // Parse token from URL hash
         const hash = window.location.hash.substring(1);
+        console.log("URL Hash:", hash);
+        
         if (hash) {
           const params = new URLSearchParams(hash);
           const accessToken = params.get('access_token');
           const type = params.get('type');
+
+          console.log("Token found:", { hasToken: !!accessToken, type });
 
           if (type === 'recovery' && accessToken) {
             // Set session with recovery token
@@ -38,6 +42,8 @@ export default function ForgotPassword() {
               access_token: accessToken,
               refresh_token: '',
             });
+
+            console.log("setSession result:", error);
 
             if (!error) {
               setHasToken(true);
@@ -48,6 +54,13 @@ export default function ForgotPassword() {
           }
         }
 
+        // If there's a hash but no valid token, still show reset form
+        // (user clicked the email link)
+        if (hash) {
+          setHasToken(true);
+          return;
+        }
+
         // Fallback: check if session already exists
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -55,6 +68,10 @@ export default function ForgotPassword() {
         }
       } catch (error) {
         console.error("Token check error:", error);
+        // On error, still show the reset form if hash exists
+        if (window.location.hash) {
+          setHasToken(true);
+        }
       } finally {
         setCheckingToken(false);
       }
