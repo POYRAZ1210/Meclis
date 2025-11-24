@@ -21,6 +21,7 @@ export default function Login() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   // Redirect to home if already logged in
   useEffect(() => {
@@ -28,6 +29,36 @@ export default function Login() {
       setLocation("/");
     }
   }, [user, setLocation]);
+
+  // Check for recovery token in URL
+  useEffect(() => {
+    const checkRecoveryMode = async () => {
+      // Check if this is a recovery link from email
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("type") === "recovery") {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+          const params = new URLSearchParams(hash);
+          const accessToken = params.get('access_token');
+          
+          if (accessToken) {
+            // Set session with recovery token
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: '',
+            });
+            
+            setIsRecoveryMode(true);
+            setShowPasswordReset(true);
+            // Clean up URL
+            window.history.replaceState({}, document.title, "/giris");
+          }
+        }
+      }
+    };
+    
+    checkRecoveryMode();
+  }, []);
 
   const handlePasswordReset = async () => {
     // Validate new password

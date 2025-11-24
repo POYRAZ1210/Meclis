@@ -97,8 +97,12 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
+      // Get the correct domain/port from window.location
+      const redirectUrl = new URL("/giris", window.location.origin);
+      redirectUrl.searchParams.set("type", "recovery");
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/sifre-sifirla`,
+        redirectTo: redirectUrl.toString(),
       });
 
       if (error) throw error;
