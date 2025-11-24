@@ -32,8 +32,9 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/giris`,
+        redirectTo: `${appUrl}/giris`,
       });
 
       if (error) throw error;
