@@ -25,9 +25,32 @@ export default function ForgotPassword() {
   useEffect(() => {
     const checkRecoveryToken = async () => {
       try {
+        // Parse token from URL hash
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+          const params = new URLSearchParams(hash);
+          const accessToken = params.get('access_token');
+          const type = params.get('type');
+
+          if (type === 'recovery' && accessToken) {
+            // Set session with recovery token
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: '',
+            });
+
+            if (!error) {
+              setHasToken(true);
+              // Clean up URL hash
+              window.history.replaceState({}, document.title, window.location.pathname);
+              return;
+            }
+          }
+        }
+
+        // Fallback: check if session already exists
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // Recovery token is valid, session was created
           setHasToken(true);
         }
       } catch (error) {
