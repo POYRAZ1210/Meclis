@@ -1,21 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { ChevronLeft } from "lucide-react";
 
 export default function ForgotPassword() {
+  const [, setLocation] = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      setLocation("/");
+    }
+  }, [user, authLoading, setLocation]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

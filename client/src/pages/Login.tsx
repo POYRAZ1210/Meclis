@@ -10,7 +10,7 @@ import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { signIn, user } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,10 +18,10 @@ export default function Login() {
 
   // Redirect to home if already logged in
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       setLocation("/");
     }
-  }, [user, setLocation]);
+  }, [user, authLoading, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
