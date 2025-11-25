@@ -32,10 +32,16 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      // Use hardcoded production URL for email redirect
+      const redirectUrl = import.meta.env.PROD 
+        ? 'https://meclis.onrender.com/auth/reset'
+        : 'http://localhost:5000/auth/reset';
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${appUrl}/auth/reset`,
+        redirectTo: redirectUrl,
       });
+      
+      console.log('Password reset email sent with redirectTo:', redirectUrl);
 
       if (error) throw error;
 
