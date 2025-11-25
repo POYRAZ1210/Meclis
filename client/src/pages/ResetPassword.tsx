@@ -19,60 +19,38 @@ export default function ResetPassword() {
   const [checkingToken, setCheckingToken] = useState(true);
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  // Check for recovery token in URL (query params or hash)
+  // Check if user has valid session (Supabase sets it after verification)
   useEffect(() => {
-    const handleRecoveryToken = async () => {
-      // Try query parameters first (Supabase sends here)
-      const searchParams = new URLSearchParams(window.location.search);
-      let accessToken = searchParams.get('access_token');
-      let type = searchParams.get('type');
-      
-      // Fallback to hash fragment
-      if (!accessToken) {
-        const hash = window.location.hash.substring(1);
-        const hashParams = new URLSearchParams(hash);
-        accessToken = hashParams.get('access_token');
-        type = hashParams.get('type');
-      }
-      
-      if (type === 'recovery' && accessToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: '',
-          });
-          
-          if (!error) {
-            setValidToken(true);
-            window.history.replaceState({}, document.title, "/auth/reset");
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Hata",
-              description: "Geçersiz veya süresi dolmuş bağlantı",
-            });
-            setTimeout(() => setLocation("/giris"), 3000);
-          }
-        } catch (error) {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (session?.user) {
+          setValidToken(true);
+        } else {
           toast({
             variant: "destructive",
             title: "Hata",
-            description: "Token doğrulanamadı",
+            description: "Geçersiz veya süresi dolmuş bağlantı",
           });
-          setTimeout(() => setLocation("/giris"), 3000);
+          setTimeout(() => setLocation("/giris"), 2000);
         }
-      } else {
+      } catch (error) {
+        console.error("Session check error:", error);
         toast({
           variant: "destructive",
           title: "Hata",
-          description: "Şifre sıfırlama bağlantısı bulunamadı",
+          description: "Bir hata oluştu",
         });
-        setTimeout(() => setLocation("/giris"), 3000);
+        setTimeout(() => setLocation("/giris"), 2000);
+      } finally {
+        setCheckingToken(false);
       }
-      setCheckingToken(false);
     };
     
-    handleRecoveryToken();
+    checkSession();
   }, [toast, setLocation]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
