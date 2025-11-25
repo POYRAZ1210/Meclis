@@ -19,48 +19,45 @@ export default function ResetPassword() {
   const [checkingToken, setCheckingToken] = useState(true);
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  // Check for recovery token in URL hash
+  // Check for recovery token in URL (query params or hash)
   useEffect(() => {
     const handleRecoveryToken = async () => {
-      const hash = window.location.hash.substring(1);
-      if (hash) {
-        const params = new URLSearchParams(hash);
-        const accessToken = params.get('access_token');
-        const type = params.get('type');
-        
-        if (type === 'recovery' && accessToken) {
-          try {
-            // Set session with recovery token
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: params.get('refresh_token') || '',
-            });
-            
-            if (!error) {
-              setValidToken(true);
-              // Clean up URL
-              window.history.replaceState({}, document.title, "/auth/reset");
-            } else {
-              toast({
-                variant: "destructive",
-                title: "Hata",
-                description: "Geçersiz veya süresi dolmuş bağlantı",
-              });
-              setTimeout(() => setLocation("/giris"), 3000);
-            }
-          } catch (error) {
+      // Try query parameters first (Supabase sends here)
+      const searchParams = new URLSearchParams(window.location.search);
+      let accessToken = searchParams.get('access_token');
+      let type = searchParams.get('type');
+      
+      // Fallback to hash fragment
+      if (!accessToken) {
+        const hash = window.location.hash.substring(1);
+        const hashParams = new URLSearchParams(hash);
+        accessToken = hashParams.get('access_token');
+        type = hashParams.get('type');
+      }
+      
+      if (type === 'recovery' && accessToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: '',
+          });
+          
+          if (!error) {
+            setValidToken(true);
+            window.history.replaceState({}, document.title, "/auth/reset");
+          } else {
             toast({
               variant: "destructive",
               title: "Hata",
-              description: "Token doğrulanamadı",
+              description: "Geçersiz veya süresi dolmuş bağlantı",
             });
             setTimeout(() => setLocation("/giris"), 3000);
           }
-        } else {
+        } catch (error) {
           toast({
             variant: "destructive",
             title: "Hata",
-            description: "Geçersiz bağlantı",
+            description: "Token doğrulanamadı",
           });
           setTimeout(() => setLocation("/giris"), 3000);
         }
