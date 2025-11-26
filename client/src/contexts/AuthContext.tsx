@@ -201,15 +201,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const { error } = await supabase.auth.signOut();
-      // Ignore "Auth session missing" error - we're signing out anyway
-      if (error && !error.message?.includes('Auth session missing')) {
+      // Ignore auth session missing and 403 errors - we're signing out anyway
+      if (error && !error.message?.includes('Auth session missing') && error.status !== 403) {
         throw error;
       }
     } catch (err: any) {
-      // Ignore session missing errors during sign out
-      if (!err.message?.includes('Auth session missing')) {
+      // Ignore session missing and 403 errors during sign out
+      if (!err.message?.includes('Auth session missing') && err.status !== 403) {
         throw err;
       }
+    }
+    
+    // Force clear session from localStorage to ensure clean logout
+    try {
+      await supabase.auth.getSession().then(() => {
+        // Session cleared by Supabase
+      });
+    } catch {
+      // Ignore any errors
     }
   }
 
