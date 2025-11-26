@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import Dashboard from "@/pages/Dashboard";
 import Announcements from "@/pages/Announcements";
 import Bluten from "@/pages/Bluten";
+import BlutenDetail from "@/pages/BlutenDetail";
 import Polls from "@/pages/Polls";
 import Ideas from "@/pages/Ideas";
 import Classes from "@/pages/Classes";
@@ -73,6 +74,11 @@ function Router() {
         <Route path="/bluten">
           <ProtectedRoute requireAuth={false}>
             <Bluten />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/bluten/:id">
+          <ProtectedRoute requireAuth={false}>
+            <BlutenDetail />
           </ProtectedRoute>
         </Route>
         <Route path="/oylamalar">

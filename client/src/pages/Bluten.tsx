@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Image as ImageIcon, Loader2, Instagram, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import EmptyState from "@/components/EmptyState";
 import { getBlutenPosts, type BlutenPost } from "@/lib/api/bluten";
@@ -50,46 +51,53 @@ export default function Bluten() {
       ) : posts && posts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((post) => (
-            <Card key={post.id} className="overflow-hidden hover-elevate group">
-              {post.media_url && (
-                <div className="aspect-square bg-muted relative overflow-hidden">
-                  <img
-                    src={post.media_url}
-                    alt={post.caption || "Instagram post"}
-                    className="object-cover w-full h-full"
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <a
-                      href={post.instagram_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <Instagram className="h-4 w-4" />
-                      <span className="text-sm font-medium">Instagram'da Aç</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                </div>
-              )}
-              {!post.media_url && (
-                <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                  <ImageIcon className="h-16 w-16 text-primary/30" />
-                </div>
-              )}
-              {post.caption && (
-                <CardContent className="p-4">
-                  <p className="text-sm line-clamp-3">{post.caption}</p>
-                </CardContent>
-              )}
-              <CardFooter className="p-4 pt-0 flex items-center justify-between text-xs text-muted-foreground gap-2">
-                <div className="flex items-center gap-2">
-                  <Instagram className="h-3 w-3" />
-                  <span>{post.username || "Maya Meclisi"}</span>
-                </div>
-                <span>{post.posted_at ? dayjs(post.posted_at).fromNow() : dayjs(post.fetched_at).fromNow()}</span>
-              </CardFooter>
-            </Card>
+            <Link key={post.id} href={`/bluten/${post.id}`}>
+              <a className="block">
+                <Card className="overflow-hidden hover-elevate group cursor-pointer h-full flex flex-col">
+                  {post.media_url && (
+                    <div className="aspect-square bg-muted relative overflow-hidden">
+                      <img
+                        src={post.media_url}
+                        alt={post.caption || "Instagram post"}
+                        className="object-cover w-full h-full"
+                        data-testid={`img-post-${post.id}`}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a
+                          href={post.instagram_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover:bg-gray-100 transition-colors"
+                          data-testid={`button-instagram-${post.id}`}
+                        >
+                          <Instagram className="h-4 w-4" />
+                          <span className="text-sm font-medium">Instagram'da Aç</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {!post.media_url && (
+                    <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                      <ImageIcon className="h-16 w-16 text-primary/30" />
+                    </div>
+                  )}
+                  {post.caption && (
+                    <CardContent className="p-4 flex-1">
+                      <p className="text-sm line-clamp-3">{post.caption}</p>
+                    </CardContent>
+                  )}
+                  <CardFooter className="p-4 pt-0 flex items-center justify-between text-xs text-muted-foreground gap-2 mt-auto">
+                    <div className="flex items-center gap-2">
+                      <Instagram className="h-3 w-3" />
+                      <span>{post.username || "Maya Meclisi"}</span>
+                    </div>
+                    <span data-testid={`text-date-${post.id}`}>{post.posted_at ? dayjs(post.posted_at).fromNow() : dayjs(post.fetched_at).fromNow()}</span>
+                  </CardFooter>
+                </Card>
+              </a>
+            </Link>
           ))}
         </div>
       ) : (

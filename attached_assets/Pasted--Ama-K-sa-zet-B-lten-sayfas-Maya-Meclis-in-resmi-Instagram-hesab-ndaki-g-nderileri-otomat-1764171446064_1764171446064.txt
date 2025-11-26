@@ -1,0 +1,205 @@
+💡 Amaç (Kısa Özet)
+
+“Bülten” sayfası, Maya Meclis’in resmi Instagram hesabındaki gönderileri otomatik olarak çeken bir haber/bülten bölümü olacak.
+
+Full otomatik: Instagram’da post atıldığı anda (veya en fazla birkaç dakika içinde) sitede “bülten postu” olarak gözükecek.
+
+İçerik:
+
+Görsel veya video
+
+Açıklama (caption)
+
+Tarih
+
+Instagram linki
+
+Ziyaretçi:
+
+Videoyu direkt siteden izleyebilecek
+
+Açıklamayı direkt siteden okuyabilecek
+
+İsterse “Instagram’da Aç” linkine basıp Instagram’a gidebilecek.
+
+🧱 Genel Mimari
+
+Instagram → Backend Cron Job
+
+Instagram API (Instagram Graph API / Basic Display API) ile resmi hesabın gönderileri çekilecek.
+
+Belirli aralıklarla çalışan bir cron job veya server-side scheduled task olacak.
+
+Yeni postları veritabanına yazacak.
+
+Backend → Veritabanı (Supabase/Postgres)
+
+Örneğin bulletin_posts adında bir tablo:
+
+id (UUID / serial)
+
+ig_post_id (Instagram’daki ID, unique)
+
+media_type (IMAGE / VIDEO / CAROUSEL_ALBUM)
+
+media_url (görsel/video url’si)
+
+thumbnail_url (özellikle video varsa)
+
+caption (text)
+
+permalink (Instagram linki)
+
+posted_at (Instagram’daki created_time)
+
+created_at (tabloya eklenme zamanı)
+
+Frontend → Bülten Listesi Sayfası (/bulten)
+
+Veritabanından bulletin_posts çekilecek (ORDER BY posted_at DESC).
+
+Kart kart listelenecek:
+
+Üstte görsel veya video önizleme
+
+Kalın başlık (caption’ın ilk satırı / ilk 80–100 karakteri)
+
+Altında kısa açıklama (caption truncate)
+
+Küçük fontla tarih
+
+“Devamını Gör” veya kartın tamamını tıklayınca detay sayfasına gitme
+
+Responsive grid (mobil 1 sütun, desktop 2–3 sütun).
+
+Frontend → Detay Sayfası (/bulten/[id])
+
+Tek post için detay:
+
+Eğer media_type === 'IMAGE':
+
+Büyük görsel veya gallery (CAROUSEL ise ilk görsel şimdilik yeter, istersen ileride slider yaparsın)
+
+Eğer media_type === 'VIDEO':
+
+HTML5 <video controls> ile media_url’den direkt oynatma
+
+Altına “Videoyu Instagram’da Gör” butonu (permalink)
+
+Caption’ı olduğu gibi (emoji dahil) göster.
+
+Altta tarih.
+
+“Instagram’da Aç” butonu.
+
+🔌 Instagram Entegrasyonu (Teknik Beklenti)
+
+Hesap: Resmî Maya Meclis Instagram hesabı (Business/Creator yapılmış ve Facebook Page’e bağlı).
+
+Çözüm yolu:
+Instagram Graph API üzerinden kullanıcı medyasını çek:
+
+Facebook Developer’da bir app aç.
+
+Instagram Basic Display / Instagram Graph API için yapılandır.
+
+access_token al (uzun süreli token).
+
+Backend’de .env içine koy:
+
+INSTAGRAM_ACCESS_TOKEN
+
+INSTAGRAM_USER_ID (hesabın id’si)
+
+Backend tarafında (ör. Node/Express, Next.js API route, Python Flask fark etmez, stack ne ise):
+
+Her 5–10 dakikada bir çalışan job (cron):
+
+GET https://graph.instagram.com/{user-id}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=...
+
+Dönen listeden id’leri çek.
+
+Veritabanında ig_post_id kontrol et:
+
+Yoksa yeni kayıt oluştur.
+
+Varsa skip et.
+
+🗄 Örnek Tablo Yapısı (SQL Mantığı)
+
+Bire bir kopyalayıp kullanmak zorunda değilsin ama mantığı şöyle:
+
+CREATE TABLE bulletin_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ig_post_id text UNIQUE NOT NULL,
+  media_type text NOT NULL,
+  media_url text NOT NULL,
+  thumbnail_url text,
+  caption text,
+  permalink text,
+  posted_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+🖥 Frontend Detayları (Next.js örneğiyle mantık)
+/bulten sayfası
+
+Server-side ya da client-side fark etmez, ama tercihen server-side:
+
+SELECT * FROM bulletin_posts ORDER BY posted_at DESC;
+
+Render:
+
+media_type === 'VIDEO' ise kartta:
+
+Küçük video veya thumbnail + play icon (performansa göre)
+
+media_type === 'IMAGE' ise:
+
+Görsel preview
+
+Caption’ı max 100–120 karakter göster, sonuna ... ekle.
+
+/bulten/[id] sayfası
+
+URL: /bulten/{id}
+
+id ile tabloya bak:
+
+Postu çek.
+
+Üstte media_type’e göre:
+
+IMAGE → <img src={media_url} />
+
+VIDEO → <video src={media_url} controls />
+
+Altında caption komple göster.
+
+En altta:
+
+<a href={permalink} target="_blank" rel="noreferrer">
+  Instagram’da Aç
+</a>
+
+🎯 Özet Beklenti
+
+Backend:
+
+Instagram API’den media çekip bulletin_posts tablosuna yazan otomatik cron job.
+
+Veritabanı:
+
+bulletin_posts tablosu (ig_post_id, media_url, caption, vs.).
+
+Frontend:
+
+/bulten: kart listesi (görsel/video + başlık + kısa açıklama).
+
+/bulten/[id]: media + full açıklama + “Instagram’da Aç”.
+
+Kullanıcı Deneyimi:
+
+Öğrenciler videoyu ve açıklamayı direkt siteden görebilecek,
+
+İsterlerse tek tıkla Instagram’a geçebilecekler.
