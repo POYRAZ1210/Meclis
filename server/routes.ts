@@ -872,7 +872,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved ideas (public - no auth required)
   app.get('/api/ideas', async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId; // Optional - only set if authenticated
+      // Extract userId from Authorization header
+      let userId: string | null = null;
+      const authHeader = req.headers.authorization;
+      
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          if (supabaseAdmin) {
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+            if (!error && user) {
+              userId = user.id;
+            }
+          }
+        } catch (e) {
+          // Token validation failed, continue without user
+        }
+      }
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
