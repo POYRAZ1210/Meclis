@@ -18,15 +18,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X } from "lucide-react";
 import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
+import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture } from "@/lib/api/admin";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -57,6 +60,33 @@ export default function Admin() {
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["/api/admin/profiles"],
     queryFn: () => getAdminProfiles(),
+  });
+
+  const { data: pendingPictures, isLoading: loadingPictures } = useQuery({
+    queryKey: ["/api/admin/profile-pictures"],
+    queryFn: getPendingProfilePictures,
+  });
+
+  const approvePictureMutation = useMutation({
+    mutationFn: (profileId: string) => approveProfilePicture(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profile-pictures"] });
+      toast({ description: "Profil fotoğrafı onaylandı" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Onay yapılırken hata oluştu" });
+    },
+  });
+
+  const rejectPictureMutation = useMutation({
+    mutationFn: (profileId: string) => rejectProfilePicture(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profile-pictures"] });
+      toast({ description: "Profil fotoğrafı reddedildi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Red işlemi yapılırken hata oluştu" });
+    },
   });
 
   const { data: adminIdeas, isLoading: loadingIdeas } = useQuery({
@@ -288,7 +318,7 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 lg:w-auto lg:inline-grid gap-1">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-8 lg:w-auto lg:inline-grid gap-1">
           <TabsTrigger value="users" data-testid="tab-users">
             <Users className="h-4 w-4 mr-2" />
             Kullanıcılar
@@ -316,6 +346,15 @@ export default function Admin() {
           <TabsTrigger value="announcement-comments" data-testid="tab-announcement-comments">
             <MessageSquare className="h-4 w-4 mr-2" />
             Duyuru Yorumları
+          </TabsTrigger>
+          <TabsTrigger value="profile-pictures" data-testid="tab-profile-pictures" className="relative">
+            <Camera className="h-4 w-4 mr-2" />
+            Profil Fotoğrafları
+            {pendingPictures && pendingPictures.length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {pendingPictures.length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -854,6 +893,87 @@ export default function Admin() {
                 </Table>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">Bekleyen duyuru yorumu yok</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Profile Pictures Tab */}
+        <TabsContent value="profile-pictures">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Profil Fotoğrafları Onayı
+                {pendingPictures && pendingPictures.length > 0 && (
+                  <Badge variant="destructive">{pendingPictures.length} bekliyor</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingPictures ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : pendingPictures && pendingPictures.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {pendingPictures.map((profile: any) => (
+                    <Card key={profile.id} className="overflow-hidden" data-testid={`card-profile-picture-${profile.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col items-center gap-4">
+                          <Avatar className="h-32 w-32">
+                            <AvatarImage src={profile.profile_picture_url || undefined} alt={profile.first_name || undefined} />
+                            <AvatarFallback className="text-2xl">
+                              {profile.first_name?.charAt(0)}{profile.last_name?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-center">
+                            <p className="font-medium">{profile.first_name} {profile.last_name}</p>
+                            <p className="text-sm text-muted-foreground">{profile.class_name || 'Sınıf belirtilmemiş'}</p>
+                          </div>
+                          <div className="flex gap-2 w-full">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => approvePictureMutation.mutate(profile.id)}
+                              disabled={approvePictureMutation.isPending || rejectPictureMutation.isPending}
+                              data-testid={`button-approve-picture-${profile.id}`}
+                            >
+                              {approvePictureMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Onayla
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => rejectPictureMutation.mutate(profile.id)}
+                              disabled={approvePictureMutation.isPending || rejectPictureMutation.isPending}
+                              data-testid={`button-reject-picture-${profile.id}`}
+                            >
+                              {rejectPictureMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <X className="h-4 w-4 mr-1" />
+                                  Reddet
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">Onay bekleyen profil fotoğrafı yok</p>
               )}
             </CardContent>
           </Card>
