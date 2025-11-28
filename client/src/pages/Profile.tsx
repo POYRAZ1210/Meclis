@@ -187,9 +187,19 @@ export default function Profile() {
               <ImageIcon className="h-5 w-5" />
               Profil Fotoğrafı
             </CardTitle>
-            <CardDescription>Profil resmini değiştir (yönetici onayı gerekir)</CardDescription>
+            <CardDescription>
+              Profil fotoğrafınızı güncelleyebilirsiniz. Yüklediğiniz fotoğraf yönetici onayından sonra yayınlanacaktır.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground mb-2">Profil Fotoğrafı Kuralları</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Fotoğrafınızda yalnızca kendi yüzünüz yer almalıdır</li>
+                <li>Uygunsuz, rahatsız edici veya başka kişilere ait görseller kabul edilmez</li>
+                <li>Fotoğraf net, düzgün ve tanınabilir olmalıdır</li>
+              </ul>
+            </div>
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
                 <AvatarImage src={profile?.profile_picture_url || undefined} alt={profile?.first_name || undefined} />
@@ -198,7 +208,7 @@ export default function Profile() {
               <div className="flex-1">
                 {profile?.profile_picture_status === 'pending' && (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-3">
-                    ⏳ Fotoğrafınız onay beklemektedir
+                    Fotoğrafınız onay beklemektedir
                   </p>
                 )}
                 <input
