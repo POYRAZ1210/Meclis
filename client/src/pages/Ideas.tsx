@@ -136,9 +136,6 @@ export default function Ideas() {
         });
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
-    },
   });
 
   const commentMutation = useMutation({
