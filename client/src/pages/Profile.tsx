@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Mail, Lock } from "lucide-react";
+import { Loader2, User, Mail, Lock, Upload, Image as ImageIcon } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
 
 export default function Profile() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   
   const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -98,6 +101,77 @@ export default function Profile() {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        description: "Lütfen bir görüntü dosyası seçin",
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        description: "Dosya boyutu 10MB'dan küçük olmalıdır",
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Dosya yüklenirken hata oluştu');
+      }
+
+      const { url } = await res.json();
+
+      // Update profile with new picture URL and set status to pending
+      const updateRes = await fetch(`/api/profile/picture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: JSON.stringify({ profile_picture_url: url }),
+      });
+
+      if (!updateRes.ok) {
+        throw new Error('Profil fotoğrafı güncellenirken hata oluştu');
+      }
+
+      toast({
+        description: "Profil fotoğrafınız yönetici onayına gönderildi",
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        description: error.message || "Fotoğraf yüklenirken hata oluştu",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8 max-w-3xl">
       <div className="mb-8">
@@ -106,6 +180,51 @@ export default function Profile() {
       </div>
 
       <div className="space-y-6">
+        {/* Profile Picture */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Profil Fotoğrafı
+            </CardTitle>
+            <CardDescription>Profil resmini değiştir (yönetici onayı gerekir)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-6">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={profile?.profile_picture_url} alt={profile?.first_name} />
+                <AvatarFallback>{profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                {profile?.profile_picture_status === 'pending' && (
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-3">
+                    ⏳ Fotoğrafınız onay beklemektedir
+                  </p>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  data-testid="input-profile-picture"
+                />
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                  data-testid="button-upload-picture"
+                >
+                  {isUploadingPhoto && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Upload className="mr-2 h-4 w-4" />
+                  Fotoğraf Yükle
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Profile Info */}
         <Card>
           <CardHeader>

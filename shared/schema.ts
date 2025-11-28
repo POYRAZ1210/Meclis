@@ -16,6 +16,8 @@ export const profiles = pgTable("profiles", {
   student_no: text("student_no"),
   gender: text("gender"),
   is_class_president: boolean("is_class_president").notNull().default(false),
+  profile_picture_url: text("profile_picture_url"),
+  profile_picture_status: text("profile_picture_status").default("approved"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -151,6 +153,8 @@ export interface Profile {
   student_no?: string;
   gender?: string;
   is_class_president: boolean;
+  profile_picture_url?: string;
+  profile_picture_status?: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
 
