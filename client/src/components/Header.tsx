@@ -9,12 +9,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
   userRole?: "admin" | "teacher" | "student";
   userName?: string;
+  profilePictureUrl?: string | null;
+  profilePictureStatus?: 'pending' | 'approved' | 'rejected';
   onLogout?: () => void;
 }
 
@@ -22,8 +24,11 @@ export default function Header({
   isAuthenticated = false, 
   userRole = "student",
   userName = "Kullanıcı",
+  profilePictureUrl,
+  profilePictureStatus,
   onLogout 
 }: HeaderProps) {
+  const showProfilePicture = profilePictureUrl && profilePictureStatus === 'approved';
   const [location] = useLocation();
 
   const navItems = [
@@ -89,6 +94,7 @@ export default function Header({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-profile">
                     <Avatar className="h-8 w-8">
+                      {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
                       <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                         {initials}
                       </AvatarFallback>
@@ -98,6 +104,7 @@ export default function Header({
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="flex items-center gap-2 p-2">
                     <Avatar className="h-8 w-8">
+                      {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
                       <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                         {initials}
                       </AvatarFallback>

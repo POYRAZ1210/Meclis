@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -307,6 +307,7 @@ export default function Ideas() {
               ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
               : "Anonim";
             const authorClass = idea.author?.class_name || "";
+            const authorPicture = idea.author?.profile_picture_status === 'approved' ? idea.author?.profile_picture_url : null;
             const initials = authorName
               .split(" ")
               .map((n) => n[0])
@@ -318,6 +319,7 @@ export default function Ideas() {
               <Card key={idea.id} className="p-6" data-testid={`card-idea-${idea.id}`}>
                 <div className="flex gap-4">
                   <Avatar>
+                    {authorPicture && <AvatarImage src={authorPicture} alt={authorName} />}
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -422,9 +424,11 @@ export default function Ideas() {
                               const commentAuthor = comment.author
                                 ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                                 : "Anonim";
+                              const commentPicture = comment.author?.profile_picture_status === 'approved' ? comment.author?.profile_picture_url : null;
                               return (
                                 <div key={comment.id} className="flex gap-3">
                                   <Avatar className="h-8 w-8">
+                                    {commentPicture && <AvatarImage src={commentPicture} alt={commentAuthor} />}
                                     <AvatarFallback className="text-xs">
                                       {commentAuthor.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                                     </AvatarFallback>

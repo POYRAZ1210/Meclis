@@ -53,6 +53,8 @@ function Router() {
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={userName}
+        profilePictureUrl={profile?.profile_picture_url}
+        profilePictureStatus={profile?.profile_picture_status}
         onLogout={handleLogout}
       />
       

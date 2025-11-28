@@ -900,8 +900,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from('ideas')
         .select(`
           *,
-          author:profiles!ideas_author_id_fkey(first_name, last_name, class_name),
-          comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name))
+          author:profiles!ideas_author_id_fkey(first_name, last_name, class_name, profile_picture_url, profile_picture_status),
+          comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name, profile_picture_url, profile_picture_status))
         `)
         .eq('status', 'approved')
         .eq('comments.status', 'approved')
