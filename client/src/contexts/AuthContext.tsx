@@ -13,6 +13,8 @@ interface Profile {
   class_name: string | null;
   student_no: string | null;
   gender: string | null;
+  profile_picture_url?: string | null;
+  profile_picture_status?: 'pending' | 'approved' | 'rejected';
 }
 
 interface AuthContextType {
