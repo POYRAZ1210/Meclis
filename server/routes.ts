@@ -1362,6 +1362,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // PROFILE PICTURE ROUTES (Admin)
+  // ============================================
+
+  // Upload/update profile picture (user)
+  app.post('/api/profile/picture', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      const { profile_picture_url } = req.body;
+
+      if (!profile_picture_url) {
+        return res.status(400).json({ error: 'Profil fotoğrafı URL gerekli' });
+      }
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get user's profile ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        throw new Error('Profil bulunamadı');
+      }
+
+      // Update profile picture with pending status
+      const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          profile_picture_url,
+          profile_picture_status: 'pending',
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error updating profile picture:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get pending profile pictures (admin only)
+  app.get('/api/admin/profile-pictures', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: profiles, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('profile_picture_status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(profiles || []);
+    } catch (error: any) {
+      console.error('Error fetching pending profile pictures:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Approve profile picture (admin only)
+  app.post('/api/admin/profile-pictures/:id/approve', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ profile_picture_status: 'approved' })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error approving profile picture:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Reject profile picture (admin only)
+  app.post('/api/admin/profile-pictures/:id/reject', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          profile_picture_status: 'rejected',
+          profile_picture_url: null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error rejecting profile picture:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

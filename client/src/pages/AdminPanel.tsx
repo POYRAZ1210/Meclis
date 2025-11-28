@@ -41,8 +41,11 @@ import { Badge } from "@/components/ui/badge";
 import { getUsers, createUser, updateUser, deleteUser } from "@/lib/api/admin";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Pencil, Trash2, Loader2, Shield, GraduationCap, UserCheck } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Loader2, Shield, GraduationCap, UserCheck, Image as ImageIcon, Check, X } from "lucide-react";
 import { createUserSchema, type CreateUser, type Profile } from "@shared/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture } from "@/lib/api/admin";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 
@@ -57,6 +60,43 @@ export default function AdminPanel() {
   const { data: users, isLoading } = useQuery({
     queryKey: ['/api/admin/users'],
     queryFn: getUsers,
+  });
+
+  const { data: pendingPictures, isLoading: isPicturesLoading } = useQuery({
+    queryKey: ['/api/admin/profile-pictures'],
+    queryFn: getPendingProfilePictures,
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (profileId: string) => approveProfilePicture(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/profile-pictures'] });
+      toast({
+        description: "Profil fotoğrafı onaylandı",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Onay yapılırken hata oluştu",
+      });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (profileId: string) => rejectProfilePicture(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/profile-pictures'] });
+      toast({
+        description: "Profil fotoğrafı reddedildi",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Red işlemi yapılırken hata oluştu",
+      });
+    },
   });
 
   const createForm = useForm<CreateUser>({
