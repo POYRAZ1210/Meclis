@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
@@ -298,6 +298,67 @@ export default function Ideas() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Top 3 Most Liked Ideas */}
+      {ideas && ideas.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            <h2 className="text-xl font-bold">En Popüler Fikirler</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[...ideas]
+              .sort((a: any, b: any) => (b.likes_count || 0) - (a.likes_count || 0))
+              .slice(0, 3)
+              .map((idea: any, index: number) => {
+                const authorName = idea.author
+                  ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
+                  : "Anonim";
+                const authorPicture = idea.author?.profile_picture_status === 'approved' ? idea.author?.profile_picture_url : null;
+                const initials = authorName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+                const medalColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600'];
+                
+                return (
+                  <Card key={idea.id} className="p-4 relative" data-testid={`card-top-idea-${idea.id}`}>
+                    <div className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-background border flex items-center justify-center">
+                      <span className={`font-bold ${medalColors[index]}`}>{index + 1}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar className="h-8 w-8">
+                        {authorPicture && <AvatarImage src={authorPicture} alt={authorName} />}
+                        <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium truncate">{authorName}</span>
+                    </div>
+                    <h3 className="font-bold mb-2 line-clamp-2">{idea.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{idea.content}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Heart className={`h-4 w-4 ${idea.user_has_liked ? 'fill-red-500 text-red-500' : ''}`} />
+                        {idea.likes_count || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        {idea.comments?.length || 0}
+                      </span>
+                    </div>
+                  </Card>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Latest Ideas */}
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-bold">En Yeni Fikirler</h2>
       </div>
 
       <div className="space-y-4">
