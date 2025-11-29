@@ -301,14 +301,10 @@ export default function KullanimSartlari() {
                 </div>
                 <div className="pl-7 space-y-2 text-muted-foreground">
                   <p>Kullanım şartları hakkında sorularınız için:</p>
-                  <div className="mt-3 p-4 bg-muted/50 rounded-lg space-y-2">
+                  <div className="mt-3 p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span>Maya Okulları Öğrenci Meclisi</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>meclis@mayaokullari.k12.tr</span>
                     </div>
                   </div>
                 </div>

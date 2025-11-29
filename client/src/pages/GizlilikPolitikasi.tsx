@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Shield, AlertTriangle, Mail, Building } from "lucide-react";
+import { Shield, AlertTriangle, Building } from "lucide-react";
 
 export default function GizlilikPolitikasi() {
   return (
@@ -77,14 +77,10 @@ export default function GizlilikPolitikasi() {
 
               <section className="pt-4 border-t">
                 <h2 className="text-lg font-semibold mb-3">İletişim</h2>
-                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-muted-foreground" />
                     <span>Maya Okulları Öğrenci Meclisi</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>meclis@mayaokullari.k12.tr</span>
                   </div>
                 </div>
               </section>

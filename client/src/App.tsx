@@ -23,6 +23,7 @@ import KullanimSartlari from "@/pages/KullanimSartlari";
 import GizlilikPolitikasi from "@/pages/GizlilikPolitikasi";
 import KVKKAydinlatma from "@/pages/KVKKAydinlatma";
 import NotFound from "@/pages/not-found";
+import CookieBanner from "@/components/CookieBanner";
 
 function Router() {
   const { user, profile, signOut, loading } = useAuth();
@@ -142,6 +143,8 @@ function Router() {
           </div>
         </div>
       </footer>
+      
+      <CookieBanner />
     </div>
   );
 }
