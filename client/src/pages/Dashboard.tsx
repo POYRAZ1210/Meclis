@@ -203,6 +203,7 @@ export default function Dashboard() {
                     .join("")
                     .toUpperCase()
                     .slice(0, 2);
+                  const authorPicture = idea.author?.profile_picture_status === 'approved' ? idea.author?.profile_picture_url : null;
                   return (
                     <IdeaCard
                       key={idea.id}
@@ -210,6 +211,7 @@ export default function Dashboard() {
                       excerpt={idea.content?.substring(0, 150) || ''}
                       authorName={authorName}
                       authorInitials={initials}
+                      authorPictureUrl={authorPicture}
                       createdAt={dayjs.utc(idea.created_at).local().fromNow()}
                       status={idea.status}
                       commentCount={idea.comments?.length || 0}

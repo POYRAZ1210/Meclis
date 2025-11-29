@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Lightbulb, Calendar, MessageSquare } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
@@ -11,6 +11,7 @@ interface IdeaCardProps {
   excerpt: string;
   authorName: string;
   authorInitials: string;
+  authorPictureUrl?: string | null;
   createdAt: string;
   status: Status;
   commentCount: number;
@@ -23,6 +24,7 @@ export default function IdeaCard({
   excerpt,
   authorName,
   authorInitials,
+  authorPictureUrl,
   createdAt,
   status,
   commentCount,
@@ -50,6 +52,7 @@ export default function IdeaCard({
               <h3 className="font-semibold text-lg leading-tight mb-2">{title}</h3>
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
+                  {authorPictureUrl && <AvatarImage src={authorPictureUrl} alt={authorName} />}
                   <AvatarFallback className="bg-muted text-xs">
                     {authorInitials}
                   </AvatarFallback>
