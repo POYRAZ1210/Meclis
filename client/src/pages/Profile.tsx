@@ -105,18 +105,33 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    // Only allow specific image types
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         variant: "destructive",
-        description: "Lütfen bir görüntü dosyası seçin",
+        description: "Sadece JPG, JPEG ve PNG dosyaları yüklenebilir",
       });
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    // Check file extension as well
+    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    if (!hasValidExtension) {
       toast({
         variant: "destructive",
-        description: "Dosya boyutu 10MB'dan küçük olmalıdır",
+        description: "Sadece .jpg, .jpeg ve .png uzantılı dosyalar yüklenebilir",
+      });
+      return;
+    }
+
+    // Maximum 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        description: "Dosya boyutu 2MB'dan küçük olmalıdır",
       });
       return;
     }
@@ -127,7 +142,9 @@ export default function Profile() {
       formData.append('file', file);
 
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/upload', {
+      
+      // Use dedicated profile picture endpoint with strict server-side validation
+      const res = await fetch('/api/upload/profile-picture', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session?.access_token || ''}`,
@@ -136,23 +153,8 @@ export default function Profile() {
       });
 
       if (!res.ok) {
-        throw new Error('Dosya yüklenirken hata oluştu');
-      }
-
-      const { url } = await res.json();
-
-      // Update profile with new picture URL and set status to pending
-      const updateRes = await fetch(`/api/profile/picture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || ''}`,
-        },
-        body: JSON.stringify({ profile_picture_url: url }),
-      });
-
-      if (!updateRes.ok) {
-        throw new Error('Profil fotoğrafı güncellenirken hata oluştu');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Dosya yüklenirken hata oluştu');
       }
 
       toast({
@@ -198,7 +200,12 @@ export default function Profile() {
                 <li>Fotoğrafınızda yalnızca kendi yüzünüz yer almalıdır</li>
                 <li>Uygunsuz, rahatsız edici veya başka kişilere ait görseller kabul edilmez</li>
                 <li>Fotoğraf net, düzgün ve tanınabilir olmalıdır</li>
+                <li>Sadece JPG, JPEG ve PNG formatları kabul edilir</li>
+                <li>Maksimum dosya boyutu 2MB</li>
               </ul>
+              <p className="mt-3 text-yellow-600 dark:text-yellow-400 font-medium">
+                Uygunsuz fotoğraflar silinir ve hesabınız askıya alınabilir.
+              </p>
             </div>
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
@@ -214,7 +221,7 @@ export default function Profile() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png"
                   onChange={handlePhotoUpload}
                   className="hidden"
                   data-testid="input-profile-picture"

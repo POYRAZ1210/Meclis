@@ -45,6 +45,29 @@ const upload = multer({
   },
 });
 
+// Configure multer for profile picture uploads - STRICT validation
+const profilePictureUpload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 2 * 1024 * 1024, // 2MB limit for profile pictures
+  },
+  fileFilter: (_req, file, cb) => {
+    // STRICT: Only allow jpg, jpeg, png for profile pictures
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    
+    const fileExtension = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
+    const isMimeAllowed = allowedMimeTypes.includes(file.mimetype);
+    const isExtensionAllowed = allowedExtensions.includes(fileExtension);
+    
+    if (isMimeAllowed && isExtensionAllowed) {
+      cb(null, true);
+    } else {
+      cb(new Error('Profil fotoğrafı için sadece JPG, JPEG ve PNG dosyaları yüklenebilir (maksimum 2MB)'));
+    }
+  },
+});
+
 // Middleware to extract user ID from Supabase JWT token
 async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -808,6 +831,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FILE UPLOAD
   // ============================================
   
+  // Upload profile picture - STRICT validation (2MB, only JPG/PNG)
+  app.post('/api/upload/profile-picture', requireAuth, profilePictureUpload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Dosya seçilmedi' });
+      }
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      const file = req.file;
+      
+      // STRICT server-side validation for security (double-check multer filter)
+      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+      
+      // Validate MIME type
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return res.status(400).json({ error: 'Sadece JPG, JPEG ve PNG dosyaları yüklenebilir' });
+      }
+      
+      // Validate file extension
+      const fileExt = file.originalname.split('.').pop()?.toLowerCase();
+      if (!fileExt || !allowedExtensions.includes(`.${fileExt}`)) {
+        return res.status(400).json({ error: 'Geçersiz dosya uzantısı. Sadece .jpg, .jpeg, .png dosyaları kabul edilir' });
+      }
+      
+      // Double-check file size (multer should catch this, but verify)
+      if (file.size > 2 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Dosya boyutu 2MB\'dan küçük olmalıdır' });
+      }
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `profiles/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabaseAdmin.storage
+        .from('ideas-media')
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        throw new Error('Dosya yüklenirken hata oluştu');
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('ideas-media')
+        .getPublicUrl(filePath);
+
+      // Update profile with new picture URL and set status to pending
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        throw new Error('Profil bulunamadı');
+      }
+
+      // Update profile picture with pending status
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          profile_picture_url: publicUrl,
+          profile_picture_status: 'pending',
+        })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      // Log profile photo upload
+      await supabaseAdmin.from('profile_photo_logs').insert({
+        user_id: userId,
+        image_url: publicUrl,
+        action: 'upload',
+      });
+
+      res.json({ 
+        url: publicUrl,
+        status: 'pending',
+      });
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error);
+      res.status(400).json({ error: error.message || 'Profil fotoğrafı yüklenirken bir hata oluştu' });
+    }
+  });
+
   // Upload image, video, or document (PDF, Word, etc.)
   app.post('/api/upload', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
     try {
@@ -1402,6 +1518,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
+      // Log profile photo upload
+      await supabaseAdmin.from('profile_photo_logs').insert({
+        user_id: userId,
+        image_url: profile_picture_url,
+        action: 'upload',
+      });
+
       res.json({ success: true });
     } catch (error: any) {
       console.error('Error updating profile picture:', error);
@@ -1460,10 +1583,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/profile-pictures/:id/reject', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const adminUserId = (req as any).userId;
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
+
+      // Get the profile before update to log the old picture URL
+      const { data: oldProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, profile_picture_url')
+        .eq('id', id)
+        .single();
 
       const { data, error } = await supabaseAdmin
         .from('profiles')
@@ -1477,9 +1608,256 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
+      // Log the profile photo rejection
+      if (oldProfile?.profile_picture_url) {
+        await supabaseAdmin.from('profile_photo_logs').insert({
+          user_id: oldProfile.user_id,
+          image_url: oldProfile.profile_picture_url,
+          action: 'delete',
+        });
+
+        await supabaseAdmin.from('action_logs').insert({
+          user_id: adminUserId,
+          action_type: 'PROFILE_PHOTO_RESET',
+          target_id: id,
+          target_type: 'profile',
+          details: `Admin rejected profile picture`,
+        });
+      }
+
       res.json(data);
     } catch (error: any) {
       console.error('Error rejecting profile picture:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Reset profile picture (admin only) - force remove any user's profile picture
+  app.post('/api/admin/users/:id/reset-picture', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminUserId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get the profile before update
+      const { data: oldProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, profile_picture_url')
+        .eq('id', id)
+        .single();
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          profile_picture_url: null,
+          profile_picture_status: 'approved',
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log the action
+      if (oldProfile?.profile_picture_url) {
+        await supabaseAdmin.from('profile_photo_logs').insert({
+          user_id: oldProfile.user_id,
+          image_url: oldProfile.profile_picture_url,
+          action: 'reset',
+        });
+      }
+
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: adminUserId,
+        action_type: 'PROFILE_PHOTO_RESET',
+        target_id: id,
+        target_type: 'profile',
+        details: `Admin reset profile picture`,
+      });
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error resetting profile picture:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Suspend user (admin only)
+  app.post('/api/admin/users/:id/suspend', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminUserId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get user_id from profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!profile) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+
+      // Ban user in Supabase Auth
+      const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(
+        profile.user_id,
+        { ban_duration: '876000h' } // ~100 years
+      );
+
+      if (banError) throw banError;
+
+      // Log the action
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: adminUserId,
+        action_type: 'USER_SUSPENDED',
+        target_id: id,
+        target_type: 'user',
+        details: `Admin suspended user`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error suspending user:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Activate user (admin only) - remove suspension
+  app.post('/api/admin/users/:id/activate', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminUserId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get user_id from profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!profile) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+
+      // Unban user in Supabase Auth
+      const { error: unbanError } = await supabaseAdmin.auth.admin.updateUserById(
+        profile.user_id,
+        { ban_duration: 'none' }
+      );
+
+      if (unbanError) throw unbanError;
+
+      // Log the action
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: adminUserId,
+        action_type: 'USER_ACTIVATED',
+        target_id: id,
+        target_type: 'user',
+        details: `Admin activated user`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error activating user:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete comment (admin only)
+  app.delete('/api/admin/comments/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminUserId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get comment info before deletion
+      const { data: comment } = await supabaseAdmin
+        .from('comments')
+        .select('author_id, idea_id, content')
+        .eq('id', id)
+        .single();
+
+      // Delete the comment
+      const { error } = await supabaseAdmin
+        .from('comments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: adminUserId,
+        action_type: 'COMMENT_DELETED',
+        target_id: id,
+        target_type: 'comment',
+        details: comment ? `Deleted comment on idea ${comment.idea_id}: "${comment.content?.substring(0, 100)}..."` : 'Deleted comment',
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Clear likes for an idea (admin only)
+  app.delete('/api/admin/ideas/:id/likes', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminUserId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get count before deletion
+      const { count } = await supabaseAdmin
+        .from('idea_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('idea_id', id);
+
+      // Delete all likes
+      const { error } = await supabaseAdmin
+        .from('idea_likes')
+        .delete()
+        .eq('idea_id', id);
+
+      if (error) throw error;
+
+      // Update the likes count on idea
+      await supabaseAdmin
+        .from('ideas')
+        .update({ likes_count: 0 })
+        .eq('id', id);
+
+      // Log the action
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: adminUserId,
+        action_type: 'LIKE_REMOVED',
+        target_id: id,
+        target_type: 'idea',
+        details: `Admin cleared ${count || 0} likes from idea`,
+      });
+
+      res.json({ success: true, cleared: count || 0 });
+    } catch (error: any) {
+      console.error('Error clearing likes:', error);
       res.status(400).json({ error: error.message });
     }
   });

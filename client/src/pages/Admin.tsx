@@ -18,13 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart } from "lucide-react";
 import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
-import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture } from "@/lib/api/admin";
+import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture, suspendUser, activateUser, resetUserProfilePicture, deleteComment, clearIdeaLikes } from "@/lib/api/admin";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -86,6 +86,61 @@ export default function Admin() {
     },
     onError: (error: any) => {
       toast({ variant: "destructive", description: error.message || "Red işlemi yapılırken hata oluştu" });
+    },
+  });
+
+  const suspendUserMutation = useMutation({
+    mutationFn: (profileId: string) => suspendUser(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
+      toast({ description: "Kullanıcı askıya alındı" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Kullanıcı askıya alınırken hata oluştu" });
+    },
+  });
+
+  const activateUserMutation = useMutation({
+    mutationFn: (profileId: string) => activateUser(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
+      toast({ description: "Kullanıcı aktifleştirildi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Kullanıcı aktifleştirilirken hata oluştu" });
+    },
+  });
+
+  const resetPictureMutation = useMutation({
+    mutationFn: (profileId: string) => resetUserProfilePicture(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
+      toast({ description: "Profil fotoğrafı sıfırlandı" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Profil fotoğrafı sıfırlanırken hata oluştu" });
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/comments"] });
+      toast({ description: "Yorum silindi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Yorum silinirken hata oluştu" });
+    },
+  });
+
+  const clearLikesMutation = useMutation({
+    mutationFn: (ideaId: string) => clearIdeaLikes(ideaId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ideas"] });
+      toast({ description: "Beğeniler temizlendi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Beğeniler temizlenirken hata oluştu" });
     },
   });
 
@@ -376,13 +431,22 @@ export default function Admin() {
                       <TableHead>İsim</TableHead>
                       <TableHead>Sınıf</TableHead>
                       <TableHead>Rol</TableHead>
+                      <TableHead className="text-right">İşlemler</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {profiles?.map((profile) => (
                       <TableRow key={profile.id} data-testid={`row-user-${profile.id}`}>
                         <TableCell className="font-medium">
-                          {profile.first_name} {profile.last_name}
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              {profile.profile_picture_url && profile.profile_picture_status === 'approved' && (
+                                <AvatarImage src={profile.profile_picture_url} alt={profile.first_name || ''} />
+                              )}
+                              <AvatarFallback>{profile.first_name?.[0]}{profile.last_name?.[0]}</AvatarFallback>
+                            </Avatar>
+                            {profile.first_name} {profile.last_name}
+                          </div>
                         </TableCell>
                         <TableCell>{profile.class_name || "-"}</TableCell>
                         <TableCell>
@@ -399,6 +463,49 @@ export default function Admin() {
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {profile.profile_picture_url && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Bu kullanıcının profil fotoğrafını sıfırlamak istediğinize emin misiniz?')) {
+                                    resetPictureMutation.mutate(profile.id);
+                                  }
+                                }}
+                                title="Profil fotoğrafını sıfırla"
+                                data-testid={`button-reset-picture-${profile.id}`}
+                              >
+                                <ImageOff className="h-4 w-4 text-orange-500" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm('Bu kullanıcıyı askıya almak istediğinize emin misiniz?')) {
+                                  suspendUserMutation.mutate(profile.id);
+                                }
+                              }}
+                              title="Kullanıcıyı askıya al"
+                              data-testid={`button-suspend-${profile.id}`}
+                            >
+                              <Ban className="h-4 w-4 text-destructive" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                activateUserMutation.mutate(profile.id);
+                              }}
+                              title="Kullanıcıyı aktifleştir"
+                              data-testid={`button-activate-${profile.id}`}
+                            >
+                              <UserCheck className="h-4 w-4 text-green-500" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

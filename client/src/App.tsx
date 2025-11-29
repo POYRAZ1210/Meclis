@@ -19,6 +19,9 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import KullanimSartlari from "@/pages/KullanimSartlari";
+import GizlilikPolitikasi from "@/pages/GizlilikPolitikasi";
+import KVKKAydinlatma from "@/pages/KVKKAydinlatma";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -108,6 +111,9 @@ function Router() {
             <Profile />
           </ProtectedRoute>
         </Route>
+        <Route path="/kullanim-sartlari" component={KullanimSartlari} />
+        <Route path="/gizlilik-politikasi" component={GizlilikPolitikasi} />
+        <Route path="/kvkk-aydinlatma-metni" component={KVKKAydinlatma} />
         <Route component={NotFound} />
       </Switch>
 
@@ -122,15 +128,15 @@ function Router() {
                 © {new Date().getFullYear()} Tüm hakları saklıdır.
               </p>
             </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">
-                Gizlilik
-              </a>
-              <a href="#" className="hover:text-primary transition-colors">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
+              <a href="/kullanim-sartlari" className="hover:text-primary transition-colors" data-testid="link-kullanim-sartlari">
                 Kullanım Şartları
               </a>
-              <a href="#" className="hover:text-primary transition-colors">
-                İletişim
+              <a href="/gizlilik-politikasi" className="hover:text-primary transition-colors" data-testid="link-gizlilik-politikasi">
+                Gizlilik Politikası
+              </a>
+              <a href="/kvkk-aydinlatma-metni" className="hover:text-primary transition-colors" data-testid="link-kvkk">
+                KVKK Aydınlatma Metni
               </a>
             </div>
           </div>

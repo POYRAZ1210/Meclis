@@ -18,6 +18,7 @@ export const profiles = pgTable("profiles", {
   is_class_president: boolean("is_class_president").notNull().default(false),
   profile_picture_url: text("profile_picture_url"),
   profile_picture_status: text("profile_picture_status").default("approved"),
+  accepted_terms_at: timestamp("accepted_terms_at"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -108,6 +109,24 @@ export const blutenPosts = pgTable("bluten_posts", {
 export const ideaLikes = pgTable("idea_likes", {
   idea_id: varchar("idea_id").notNull(),
   user_id: varchar("user_id").notNull(),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const profilePhotoLogs = pgTable("profile_photo_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").notNull(),
+  image_url: text("image_url").notNull(),
+  action: text("action").notNull().default("upload"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const actionLogs = pgTable("action_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").notNull(),
+  action_type: text("action_type").notNull(),
+  target_id: varchar("target_id"),
+  target_type: text("target_type"),
+  details: text("details"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -342,5 +361,57 @@ export type InsertIdeaLike = z.infer<typeof insertIdeaLikeSchema>;
 export interface IdeaLike {
   idea_id: string;
   user_id: string;
+  created_at: string;
+}
+
+// ============================================
+// PROFILE PHOTO LOGS
+// ============================================
+export const insertProfilePhotoLogSchema = z.object({
+  user_id: z.string().uuid(),
+  image_url: z.string().url(),
+  action: z.enum(['upload', 'delete', 'reset']).default('upload'),
+});
+
+export type InsertProfilePhotoLog = z.infer<typeof insertProfilePhotoLogSchema>;
+
+export interface ProfilePhotoLog {
+  id: string;
+  user_id: string;
+  image_url: string;
+  action: 'upload' | 'delete' | 'reset';
+  created_at: string;
+}
+
+// ============================================
+// ACTION LOGS
+// ============================================
+export const insertActionLogSchema = z.object({
+  user_id: z.string().uuid(),
+  action_type: z.enum([
+    'COMMENT_CREATED', 
+    'COMMENT_DELETED', 
+    'LIKE_ADDED', 
+    'LIKE_REMOVED',
+    'IDEA_CREATED',
+    'IDEA_DELETED',
+    'USER_SUSPENDED',
+    'USER_ACTIVATED',
+    'PROFILE_PHOTO_RESET'
+  ]),
+  target_id: z.string().optional(),
+  target_type: z.string().optional(),
+  details: z.string().optional(),
+});
+
+export type InsertActionLog = z.infer<typeof insertActionLogSchema>;
+
+export interface ActionLog {
+  id: string;
+  user_id: string;
+  action_type: string;
+  target_id?: string;
+  target_type?: string;
+  details?: string;
   created_at: string;
 }

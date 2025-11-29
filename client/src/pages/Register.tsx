@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useLocation } from "wouter";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +15,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,6 +46,15 @@ export default function Register() {
         variant: "destructive",
         title: "Hata",
         description: "Şifre en az 6 karakter olmalıdır",
+      });
+      return;
+    }
+
+    if (!acceptedTerms) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Kayıt olmak için Kullanım Şartları ve Gizlilik Politikasını kabul etmelisiniz",
       });
       return;
     }
@@ -120,6 +131,36 @@ export default function Register() {
                 minLength={6}
                 data-testid="input-register-confirm-password"
               />
+            </div>
+            <div className="flex items-start space-x-3 pt-2">
+              <Checkbox
+                id="terms"
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                data-testid="checkbox-accept-terms"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-tight cursor-pointer"
+                >
+                  <Link href="/kullanim-sartlari" className="text-primary hover:underline">
+                    Kullanım Şartları
+                  </Link>
+                  {", "}
+                  <Link href="/gizlilik-politikasi" className="text-primary hover:underline">
+                    Gizlilik Politikası
+                  </Link>
+                  {" ve "}
+                  <Link href="/kvkk-aydinlatma-metni" className="text-primary hover:underline">
+                    KVKK Aydınlatma Metni
+                  </Link>
+                  'ni okudum, kabul ediyorum.
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Kayıt olarak bu şartları kabul etmiş olursunuz.
+                </p>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

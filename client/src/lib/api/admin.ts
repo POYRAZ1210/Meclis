@@ -140,3 +140,103 @@ export async function rejectProfilePicture(profileId: string) {
 
   return res.json() as Promise<Profile>;
 }
+
+export async function resetUserProfilePicture(profileId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/users/${profileId}/reset-picture`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Profil fotoğrafı sıfırlanırken hata oluştu');
+  }
+
+  return res.json() as Promise<Profile>;
+}
+
+export async function suspendUser(profileId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/users/${profileId}/suspend`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Kullanıcı askıya alınırken hata oluştu');
+  }
+
+  return res.json();
+}
+
+export async function activateUser(profileId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/users/${profileId}/activate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Kullanıcı aktifleştirilirken hata oluştu');
+  }
+
+  return res.json();
+}
+
+export async function deleteComment(commentId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum silinirken hata oluştu');
+  }
+
+  return res.json();
+}
+
+export async function clearIdeaLikes(ideaId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/ideas/${ideaId}/likes`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Beğeniler temizlenirken hata oluştu');
+  }
+
+  return res.json();
+}

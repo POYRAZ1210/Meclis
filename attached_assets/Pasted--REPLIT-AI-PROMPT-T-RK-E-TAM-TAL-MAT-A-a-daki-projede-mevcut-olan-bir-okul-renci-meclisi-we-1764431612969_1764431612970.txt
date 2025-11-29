@@ -1,0 +1,230 @@
+✅ REPLIT AI PROMPT (TÜRKÇE – TAM TALİMAT)
+
+Aşağıdaki projede mevcut olan bir okul öğrenci meclisi web sitesi üzerinde düzenleme yapacaksın.
+Bu site öğrenciler tarafından kullanılıyor ve şu özellikleri içeriyor:
+
+Kullanıcı kaydı ve giriş
+
+Profil sayfası (öğrenciler profil fotoğrafı değiştirebiliyor)
+
+Yorum sistemi
+
+Beğeni (like) sistemi
+
+Duyurular / paylaşımlar
+
+Kullanıcıların tamamı reşit olmayan öğrencilerden oluşmaktadır.
+Bu nedenle siteye hukuki uyum (KVKK, kullanım şartları, gizlilik) ve teknik güvenlik/loglama eklenmesi gerekmektedir.
+
+⚠️ Mevcut sistemi sıfırdan yazmayacaksın.
+Sadece var olan projeye aşağıdaki eklemeleri yapacaksın.
+
+✅ 1. ZORUNLU HUKUKİ SAYFALARI OLUŞTUR
+
+Aşağıdaki sayfaları frontend tarafında route/page olarak oluştur:
+
+/kullanim-sartlari
+
+/gizlilik-politikasi
+
+/kvkk-aydinlatma-metni
+
+✅ 2. /kullanim-sartlari SAYFASINA AŞAĞIDAKİ METNİ BİREBİR YERLEŞTİR
+
+Bu metin eksiksiz, değiştirilmeden ve birebir kullanılacaktır.
+Başlıkları <h1>, <h2>, paragrafları <p> ile düzenleyebilirsin.
+
+(⚠️ Buraya sana daha önce verdiğim 16 maddelik TAM KAPSAMLI Kullanım Şartları metnini AYNEN yapıştır. Kısaltma, özet, sadeleştirme YAPMA.)
+
+✅ İçerecek:
+
+Profil fotoğrafı kuralları
+
+Yorum ve like kuralları
+
+Reşit olmayan kullanıcılar
+
+Log kayıtları
+
+İçerik denetimi
+
+Disiplin süreci
+
+Hukuki sorumluluk reddi
+
+✅ 3. DİĞER SAYFALAR İÇİN GEÇİCİ METİN OLUŞTUR
+/gizlilik-politikasi
+
+Başlık: Gizlilik Politikası
+
+Metin:
+
+Bu sayfa, sitede işlenen kişisel verilerin gizliliğini ve veri güvenliği esaslarını açıklamak amacıyla oluşturulmuştur. İçerik okul yönetimi ve hukuki danışmanlık doğrultusunda güncellenecektir.
+
+/kvkk-aydinlatma-metni
+
+Başlık: KVKK Aydınlatma Metni
+
+Metin:
+
+Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerin işlenmesine ilişkin kullanıcıları bilgilendirmek amacıyla hazırlanmıştır. Detaylı içerik okul yönetimi tarafından eklenecektir.
+
+✅ 4. FOOTER VEYA ANA LAYOUT’A BU LİNKLERİ EKLE
+
+Sitenin alt kısmına (footer):
+
+Kullanım Şartları
+
+Gizlilik Politikası
+
+KVKK Aydınlatma Metni
+
+Linklerini ekle ve tüm sayfalarda görünsün.
+
+✅ 5. KAYIT FORMUNA ZORUNLU ONAY KUTUSU EKLE (ÇOK KRİTİK)
+
+Kayıt (register) ekranına ZORUNLU olarak şu checkbox eklenecek:
+
+☑️
+“Kullanım Şartları ve Gizlilik Politikasını okudum, kabul ediyorum.”
+
+“Kullanım Şartları” → /kullanim-sartlari linkli olacak
+
+“Gizlilik Politikası” → /gizlilik-politikasi linkli olacak
+
+✅ ZORUNLULUK:
+
+Checkbox işaretlenmeden kayıt OLAMAYACAK
+
+Backend/API tarafında da kontrol edilecek
+
+Kabul edilmemişse kullanıcı veritabanına eklenmeyecek
+
+İstersen users tablosuna şu alanı ekleyebilirsin:
+
+accepted_terms_at (timestamp)
+
+✅ 6. PROFİL FOTOĞRAFI (PP) KURALLARI VE LOG KAYDI
+✅ Frontend:
+
+Sadece şu uzantılara izin ver:
+
+.jpg
+
+.jpeg
+
+.png
+
+Dosya boyutu: maksimum 2MB
+
+Yükleme alanının yanına şu uyarıyı ekle:
+
+“Profil fotoğrafınız okul kurallarına uygun olmalıdır. Uygunsuz fotoğraflar silinir ve hesabınız askıya alınabilir.”
+
+✅ Backend:
+
+Yüklenen dosyanın gerçekten görsel olduğundan emin ol (MIME check)
+
+Her profil fotoğrafı değiştiğinde veritabanına şu log kaydı at:
+
+Tablo adı: profile_photo_logs
+Alanlar:
+
+id
+
+user_id
+
+image_url
+
+created_at
+
+✅ 7. YORUM VE LIKE SİSTEMİNE LOG EKLE
+✅ Yorumlar:
+
+Her yorumda şu alanlar ZORUNLU olmalı:
+
+id
+
+user_id
+
+post_id
+
+content
+
+created_at
+
+Silinen yorumlar için şu log atılmalı:
+
+action_logs tablosu:
+
+user_id
+
+action_type → "COMMENT_CREATED" / "COMMENT_DELETED"
+
+target_id
+
+created_at
+
+✅ Like Sistemi:
+
+Her beğeni için:
+
+id
+
+user_id
+
+target_id
+
+target_type
+
+created_at
+
+Aynı kişi aynı içeriğe birden fazla like atamasın
+(user_id + target_id unique olacak)
+
+✅ 8. ADMİN PANELİ (VEYA YETKİLİ SAYFA) YETKİLERİ
+
+Admin şu işlemleri yapabilmeli:
+
+✅ Yorum silebilmeli
+
+✅ Kullanıcıyı askıya alabilmeli
+
+✅ Profil fotoğrafını sıfırlayabilmeli
+
+✅ Gerekirse like’ları temizleyebilmeli
+
+Eğer admin paneli zaten varsa, buna göre genişlet.
+Yoksa minimum düzeyde çalışma yapan bir sayfa oluştur.
+
+✅ 9. KOD TESLİM ŞARTI (ÇOK ÖNEMLİ)
+
+Değiştirdiğin HER DOSYANIN
+✅ TAM HALİNİ
+✅ BAŞTAN SONA
+✅ TEK PARÇA
+olarak gönder.
+
+“Sadece şu satırı değiştir” şeklinde cevap VERME.
+
+Yeni dosya açarsan onun da TAM halini yaz.
+
+✅ HEDEF
+
+Bu işlemlerden sonra sistem şunları sağlamalı:
+
+✅ Hukuki kullanım şartları
+
+✅ KVKK sayfası
+
+✅ Gizlilik politikası
+
+✅ Zorunlu kayıt onayı
+
+✅ Profil fotoğrafı güvenliği
+
+✅ Yorum ve like kayıtları
+
+✅ Admin denetimi
+
+✅ Log ile delil üretilebilir yapı

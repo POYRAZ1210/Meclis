@@ -186,6 +186,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'profile'
           );
         }
+        
+        // Record terms acceptance timestamp for legal compliance
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ accepted_terms_at: new Date().toISOString() })
+          .eq('user_id', data.user.id);
+        
+        if (updateError) {
+          console.error('Failed to record terms acceptance:', updateError);
+          // Don't throw - registration is complete, this is non-blocking
+        }
       } catch (err) {
         throw translateSupabaseError(err, 'profile');
       }
