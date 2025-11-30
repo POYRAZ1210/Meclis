@@ -62,6 +62,7 @@ export const ideas = pgTable("ideas", {
   content: text("content").notNull(),
   status: text("status").notNull().default("pending"),
   author_id: varchar("author_id").notNull(),
+  is_anonymous: boolean("is_anonymous").notNull().default(false),
   image_url: text("image_url"),
   video_url: text("video_url"),
   attachment_url: text("attachment_url"),
@@ -78,6 +79,7 @@ export const comments = pgTable("comments", {
   author_id: varchar("author_id").notNull(),
   parent_id: varchar("parent_id"),
   content: text("content").notNull(),
+  is_anonymous: boolean("is_anonymous").notNull().default(false),
   status: text("status").notNull().default("pending"),
   reviewed_by: varchar("reviewed_by"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
@@ -89,6 +91,7 @@ export const announcementComments = pgTable("announcement_comments", {
   author_id: varchar("author_id").notNull(),
   parent_id: varchar("parent_id"),
   content: text("content").notNull(),
+  is_anonymous: boolean("is_anonymous").notNull().default(false),
   status: text("status").notNull().default("pending"),
   reviewed_by: varchar("reviewed_by"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
@@ -249,6 +252,7 @@ export const insertIdeaSchema = z.object({
   title: z.string().min(3, "Başlık en az 3 karakter olmalı"),
   content: z.string().min(10, "İçerik en az 10 karakter olmalı"),
   author_id: z.string().uuid(),
+  is_anonymous: z.boolean().default(false),
   image_url: z.string().url().optional().or(z.literal('')),
   video_url: z.string().url().optional().or(z.literal('')),
   attachment_url: z.string().optional(),
@@ -263,6 +267,7 @@ export interface Idea {
   content: string;
   status: 'pending' | 'approved' | 'rejected';
   author_id: string;
+  is_anonymous: boolean;
   image_url?: string;
   video_url?: string;
   attachment_url?: string;
@@ -280,6 +285,7 @@ export const insertCommentSchema = z.object({
   idea_id: z.string().uuid(),
   author_id: z.string().uuid(),
   content: z.string().min(1, "Yorum boş olamaz"),
+  is_anonymous: z.boolean().default(false),
 });
 
 export type InsertComment = z.infer<typeof insertCommentSchema>;
@@ -289,6 +295,7 @@ export interface Comment {
   idea_id: string;
   author_id: string;
   content: string;
+  is_anonymous: boolean;
   status: 'pending' | 'approved' | 'rejected';
   reviewed_by?: string;
   created_at: string;
@@ -301,6 +308,7 @@ export const insertAnnouncementCommentSchema = z.object({
   announcement_id: z.string().uuid(),
   author_id: z.string().uuid(),
   content: z.string().min(1, "Yorum boş olamaz"),
+  is_anonymous: z.boolean().default(false),
 });
 
 export type InsertAnnouncementComment = z.infer<typeof insertAnnouncementCommentSchema>;
@@ -310,6 +318,7 @@ export interface AnnouncementComment {
   announcement_id: string;
   author_id: string;
   content: string;
+  is_anonymous: boolean;
   status: 'pending' | 'approved' | 'rejected';
   reviewed_by?: string;
   created_at: string;
