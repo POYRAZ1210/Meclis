@@ -144,12 +144,6 @@ export default function Login() {
                 Şifremi Unuttum
               </Button>
             </Link>
-            <div className="text-center text-sm text-muted-foreground">
-              Hesabınız yok mu?{" "}
-              <Link href="/kayit" className="text-primary hover:underline">
-                Kayıt olun
-              </Link>
-            </div>
           </CardFooter>
         </form>
       </Card>
