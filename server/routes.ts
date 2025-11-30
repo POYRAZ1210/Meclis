@@ -337,7 +337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (parentComment && parentComment.author_id !== profile.id) {
           const replierName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Birisi';
           const shortContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
-          await supabaseAdmin
+          console.log('Creating reply notification for user:', parentComment.author_id);
+          const { error: notifError } = await supabaseAdmin
             .from('notifications')
             .insert({
               user_id: parentComment.author_id,
@@ -346,6 +347,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: `${replierName} yorumunuza yanıt verdi: "${shortContent}"`,
               link: '/duyurular',
             });
+          if (notifError) {
+            console.error('Error creating reply notification:', notifError);
+          } else {
+            console.log('Reply notification created successfully');
+          }
         }
       }
 
@@ -453,7 +459,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const shortContent = comment.content.length > 50 
           ? comment.content.substring(0, 50) + '...' 
           : comment.content;
-        await supabaseAdmin
+        console.log('Creating notification for user:', comment.author_id);
+        const { error: notifError } = await supabaseAdmin
           .from('notifications')
           .insert({
             user_id: comment.author_id,
@@ -464,6 +471,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : `"${shortContent}" yorumunuz reddedildi.`,
             link: status === 'approved' ? '/duyurular' : undefined,
           });
+        if (notifError) {
+          console.error('Error creating notification:', notifError);
+        } else {
+          console.log('Notification created successfully');
+        }
       }
 
       res.json({ success: true });
