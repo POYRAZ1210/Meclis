@@ -12,6 +12,7 @@ import {
   insertIdeaSchema,
   insertCommentSchema,
   insertAnnouncementCommentSchema,
+  studentRegistrationSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads (in-memory storage)
@@ -983,6 +984,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(profiles);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // PUBLIC STUDENT REGISTRATION (One-time only)
+  // ============================================
+  app.post('/api/register', async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Sunucu yapılandırma hatası' });
+      }
+
+      // Validate request body
+      const validated = studentRegistrationSchema.parse(req.body);
+      const normalizedEmail = validated.email.toLowerCase().trim();
+
+      // Check if student number already exists (one-time registration)
+      const { data: existingStudent, error: checkError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('student_no', validated.student_no)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Student number check error:', checkError);
+        return res.status(500).json({ error: 'Kayıt kontrolü yapılamadı' });
+      }
+
+      if (existingStudent) {
+        return res.status(400).json({ 
+          error: 'Bu öğrenci numarası ile zaten bir hesap oluşturulmuş. Her öğrenci sadece bir kez kayıt olabilir.' 
+        });
+      }
+
+      // Create auth user (Supabase will reject if email already exists)
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: normalizedEmail,
+        password: validated.password,
+        email_confirm: true, // Auto-confirm
+      });
+
+      if (authError) {
+        console.error('Auth user creation error:', authError);
+        if (authError.message?.includes('already registered') || authError.message?.includes('already exists')) {
+          return res.status(400).json({ 
+            error: 'Bu e-posta adresi ile zaten bir hesap bulunmaktadır.' 
+          });
+        }
+        return res.status(400).json({ error: 'Hesap oluşturulamadı: ' + authError.message });
+      }
+
+      // Wait a bit for trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Double-check student number wasn't taken during user creation (race condition prevention)
+      const { data: raceCheck } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('student_no', validated.student_no)
+        .neq('user_id', authUser.user.id)
+        .maybeSingle();
+
+      if (raceCheck) {
+        // Race condition: someone else registered with same student_no
+        console.error('Race condition detected for student_no:', validated.student_no);
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+        return res.status(400).json({ 
+          error: 'Bu öğrenci numarası ile zaten bir hesap oluşturulmuş. Her öğrenci sadece bir kez kayıt olabilir.' 
+        });
+      }
+
+      // Update profile with student data
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          first_name: validated.first_name,
+          last_name: validated.last_name,
+          role: 'student',
+          class_name: validated.class_name,
+          student_no: validated.student_no,
+          is_class_president: false,
+          accepted_terms_at: new Date().toISOString(),
+        })
+        .eq('user_id', authUser.user.id)
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Clean up the auth user if profile update fails
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+        return res.status(500).json({ error: 'Profil oluşturulamadı, lütfen tekrar deneyin.' });
+      }
+
+      console.log(`New student registered: ${validated.first_name} ${validated.last_name} (${validated.student_no})`);
+      
+      res.status(201).json({ 
+        success: true, 
+        message: 'Kayıt başarılı! Artık giriş yapabilirsiniz.' 
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      if (error.name === 'ZodError') {
+        const messages = error.errors?.map((e: any) => e.message).join(', ');
+        return res.status(400).json({ error: messages || 'Geçersiz bilgiler' });
+      }
+      res.status(500).json({ error: error.message || 'Kayıt sırasında bir hata oluştu' });
     }
   });
 

@@ -371,6 +371,20 @@ export const createUserSchema = z.object({
 export type CreateUser = z.infer<typeof createUserSchema>;
 
 // ============================================
+// STUDENT REGISTRATION (Public one-time registration)
+// ============================================
+export const studentRegistrationSchema = z.object({
+  email: z.string().email("Geçerli bir e-posta adresi giriniz"),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
+  first_name: z.string().min(1, "Ad gerekli"),
+  last_name: z.string().min(1, "Soyad gerekli"),
+  class_name: z.string().min(1, "Sınıf gerekli"),
+  student_no: z.string().min(1, "Öğrenci numarası gerekli"),
+});
+
+export type StudentRegistration = z.infer<typeof studentRegistrationSchema>;
+
+// ============================================
 // IDEA LIKES
 // ============================================
 export const insertIdeaLikeSchema = z.object({
