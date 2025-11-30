@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart } from "lucide-react";
-import { getAdminProfiles, updateProfile } from "@/lib/api/profiles";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus } from "lucide-react";
+import { getAdminProfiles, updateProfile, getClasses, createClass, deleteClass, type SchoolClass } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
@@ -56,6 +57,36 @@ dayjs.locale("tr");
 export default function Admin() {
   const { toast } = useToast();
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
+  const [newClassName, setNewClassName] = useState("");
+
+  // Classes
+  const { data: classes, isLoading: loadingClasses } = useQuery({
+    queryKey: ["/api/classes"],
+    queryFn: getClasses,
+  });
+
+  const createClassMutation = useMutation({
+    mutationFn: (name: string) => createClass(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      setNewClassName("");
+      toast({ description: "Sınıf oluşturuldu" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Sınıf oluşturulurken hata oluştu" });
+    },
+  });
+
+  const deleteClassMutation = useMutation({
+    mutationFn: (id: string) => deleteClass(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      toast({ description: "Sınıf silindi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Sınıf silinirken hata oluştu" });
+    },
+  });
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["/api/admin/profiles"],
@@ -410,6 +441,10 @@ export default function Admin() {
                 {pendingPictures.length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="classes" data-testid="tab-classes">
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Sınıflar
           </TabsTrigger>
         </TabsList>
 
@@ -1082,6 +1117,93 @@ export default function Admin() {
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">Onay bekleyen profil fotoğrafı yok</p>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="classes">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Sınıf Yönetimi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Yeni sınıf adı (örn: 9-A)"
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                    className="max-w-xs"
+                    data-testid="input-new-class"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (newClassName.trim()) {
+                        createClassMutation.mutate(newClassName.trim());
+                      }
+                    }}
+                    disabled={!newClassName.trim() || createClassMutation.isPending}
+                    data-testid="button-create-class"
+                  >
+                    {createClassMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Sınıf Ekle
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {loadingClasses ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : classes && classes.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sınıf Adı</TableHead>
+                        <TableHead>Oluşturulma Tarihi</TableHead>
+                        <TableHead className="w-[100px]">İşlemler</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {classes.map((cls) => (
+                        <TableRow key={cls.id} data-testid={`row-class-${cls.id}`}>
+                          <TableCell className="font-medium">{cls.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {dayjs(cls.created_at).format("DD MMM YYYY")}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm(`"${cls.name}" sınıfını silmek istediğinize emin misiniz?`)) {
+                                  deleteClassMutation.mutate(cls.id);
+                                }
+                              }}
+                              disabled={deleteClassMutation.isPending}
+                              data-testid={`button-delete-class-${cls.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Henüz sınıf eklenmemiş. Kayıt formunda görünmesi için sınıf ekleyin.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

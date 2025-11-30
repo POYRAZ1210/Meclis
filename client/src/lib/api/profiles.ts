@@ -52,16 +52,64 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
 }
 
 export async function getClassNames() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('class_name')
-    .not('class_name', 'is', null)
-    .order('class_name');
+  // Get classes from the classes table
+  const res = await fetch('/api/classes');
+  if (!res.ok) {
+    throw new Error('Sınıflar yüklenirken hata oluştu');
+  }
+  const classes = await res.json();
+  return classes.map((c: { name: string }) => c.name) as string[];
+}
 
-  if (error) throw error;
-  
-  const uniqueClasses = [...new Set(data.map(p => p.class_name).filter(Boolean))];
-  return uniqueClasses as string[];
+export interface SchoolClass {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export async function getClasses(): Promise<SchoolClass[]> {
+  const res = await fetch('/api/classes');
+  if (!res.ok) {
+    throw new Error('Sınıflar yüklenirken hata oluştu');
+  }
+  return res.json();
+}
+
+export async function createClass(name: string): Promise<SchoolClass> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch('/api/classes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Sınıf oluşturulurken hata oluştu');
+  }
+  return res.json();
+}
+
+export async function deleteClass(id: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/classes/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Sınıf silinirken hata oluştu');
+  }
 }
 
 export async function getAdminProfiles(className?: string) {

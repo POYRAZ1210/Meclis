@@ -13,6 +13,7 @@ import {
   insertCommentSchema,
   insertAnnouncementCommentSchema,
   studentRegistrationSchema,
+  insertClassSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads (in-memory storage)
@@ -984,6 +985,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(profiles);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // CLASSES MANAGEMENT
+  // ============================================
+  
+  // Get all classes (public - for registration form)
+  app.get('/api/classes', async (_req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('classes')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      console.error('Error fetching classes:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new class (admin only)
+  app.post('/api/classes', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const validated = insertClassSchema.parse(req.body);
+
+      // Check if class already exists
+      const { data: existing } = await supabaseAdmin
+        .from('classes')
+        .select('id')
+        .eq('name', validated.name)
+        .maybeSingle();
+
+      if (existing) {
+        return res.status(400).json({ error: 'Bu sınıf zaten mevcut' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('classes')
+        .insert({ name: validated.name })
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.status(201).json(data);
+    } catch (error: any) {
+      console.error('Error creating class:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: 'Geçersiz sınıf adı' });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a class (admin only)
+  app.delete('/api/classes/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from('classes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting class:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

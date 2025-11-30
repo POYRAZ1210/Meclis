@@ -22,6 +22,12 @@ export const profiles = pgTable("profiles", {
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const classes = pgTable("classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 export const announcements = pgTable("announcements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -190,6 +196,21 @@ export interface Profile {
   is_class_president: boolean;
   profile_picture_url?: string;
   profile_picture_status?: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+// ============================================
+// CLASSES
+// ============================================
+export const insertClassSchema = z.object({
+  name: z.string().min(1, "Sınıf adı gerekli"),
+});
+
+export type InsertClass = z.infer<typeof insertClassSchema>;
+
+export interface SchoolClass {
+  id: string;
+  name: string;
   created_at: string;
 }
 

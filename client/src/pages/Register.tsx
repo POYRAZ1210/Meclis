@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,22 +8,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Lock, User, Hash, GraduationCap } from "lucide-react";
-
-const CLASS_OPTIONS = [
-  "5-A", "5-B", "5-C", "5-D",
-  "6-A", "6-B", "6-C", "6-D",
-  "7-A", "7-B", "7-C", "7-D",
-  "8-A", "8-B", "8-C", "8-D",
-  "9-A", "9-B", "9-C", "9-D",
-  "10-A", "10-B", "10-C", "10-D",
-  "11-A", "11-B", "11-C", "11-D",
-  "12-A", "12-B", "12-C", "12-D",
-];
+import { UserPlus, Mail, Lock, User, Hash, GraduationCap, Loader2 } from "lucide-react";
+import { getClasses } from "@/lib/api/profiles";
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Fetch available classes from the database
+  const { data: classes, isLoading: loadingClasses } = useQuery({
+    queryKey: ["/api/classes"],
+    queryFn: getClasses,
+  });
   
   const [formData, setFormData] = useState({
     email: "",
@@ -217,17 +214,28 @@ export default function Register() {
                 <Select 
                   value={formData.className} 
                   onValueChange={(value) => handleChange("className", value)}
+                  disabled={loadingClasses}
                 >
                   <SelectTrigger data-testid="select-register-class">
-                    <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Sınıf seçin" />
+                    {loadingClasses ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground" />
+                    ) : (
+                      <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
+                    )}
+                    <SelectValue placeholder={loadingClasses ? "Yükleniyor..." : "Sınıf seçin"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {CLASS_OPTIONS.map((cls) => (
-                      <SelectItem key={cls} value={cls}>
-                        {cls}
+                    {classes && classes.length > 0 ? (
+                      classes.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.name}>
+                          {cls.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        Sınıf bulunamadı
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
