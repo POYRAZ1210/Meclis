@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
@@ -34,28 +34,44 @@ interface Notification {
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [, setLocation] = useLocation();
+
+  const getAuthHeaders = (): Record<string, string> => {
+    if (session?.access_token) {
+      return {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      };
+    }
+    return { 'Content-Type': 'application/json' };
+  };
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     queryFn: async () => {
-      const res = await fetch('/api/notifications', { credentials: 'include' });
+      const res = await fetch('/api/notifications', { 
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       if (!res.ok) throw new Error('Failed to fetch notifications');
       return res.json();
     },
-    enabled: !!user,
+    enabled: !!user && !!session,
     refetchInterval: 30000,
   });
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ['/api/notifications/unread-count'],
     queryFn: async () => {
-      const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+      const res = await fetch('/api/notifications/unread-count', { 
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       if (!res.ok) throw new Error('Failed to fetch unread count');
       return res.json();
     },
-    enabled: !!user,
+    enabled: !!user && !!session,
     refetchInterval: 30000,
   });
 
@@ -63,7 +79,13 @@ export default function NotificationBell() {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest('PATCH', `/api/notifications/${id}/read`);
+      const res = await fetch(`/api/notifications/${id}/read`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to mark as read');
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -73,7 +95,13 @@ export default function NotificationBell() {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('PATCH', '/api/notifications/read-all');
+      const res = await fetch('/api/notifications/read-all', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to mark all as read');
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
