@@ -179,6 +179,48 @@ export async function addAnnouncementComment(announcementId: string, content: st
   return res.json();
 }
 
+export async function editAnnouncementComment(commentId: string, content: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/announcement-comments/${commentId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ content }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum düzenlenirken hata oluştu');
+  }
+
+  return res.json();
+}
+
+export async function deleteAnnouncementComment(commentId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/announcement-comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum silinirken hata oluştu');
+  }
+
+  return res.json();
+}
+
 export async function getAdminAnnouncementComments() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');

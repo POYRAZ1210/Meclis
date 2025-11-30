@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Search, Loader2, FileText, Download } from "lucide-react";
+import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getAnnouncements, createAnnouncement, getAnnouncementComments, addAnnouncementComment, type Announcement } from "@/lib/api/announcements";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { getAnnouncements, createAnnouncement, getAnnouncementComments, addAnnouncementComment, editAnnouncementComment, deleteAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +55,8 @@ export default function Announcements() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const { toast} = useToast();
   const { user, profile } = useAuth();
   const [, setLocation] = useLocation();
@@ -92,6 +96,48 @@ export default function Announcements() {
           description: error.message || "Yorum eklenirken bir hata oluştu",
         });
       }
+    },
+  });
+
+  const editCommentMutation = useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) => {
+      return editAnnouncementComment(commentId, content);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
+      setEditingComment(null);
+      toast({
+        title: "Yorum düzenlendi!",
+        description: "Yorumunuz tekrar yönetici onayına gönderildi.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => {
+      return deleteAnnouncementComment(commentId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
+      setDeleteCommentId(null);
+      toast({
+        title: "Yorum silindi",
+        description: "Yorumunuz başarıyla silindi.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -279,8 +325,9 @@ export default function Announcements() {
                     const authorName = comment.author
                       ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                       : "Anonim";
+                    const isOwnComment = profile?.id === comment.author_id;
                     return (
-                      <Card key={comment.id} className="p-4" data-testid={`comment-${comment.id}`}>
+                      <Card key={comment.id} className="p-4 group" data-testid={`comment-${comment.id}`}>
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-medium text-sm">{authorName}</p>
@@ -288,9 +335,42 @@ export default function Announcements() {
                               {comment.author?.class_name || ""} {comment.author?.student_no ? `• ${comment.author.student_no}` : ""}
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {dayjs.utc(comment.created_at).local().fromNow()}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {dayjs.utc(comment.created_at).local().fromNow()}
+                            </p>
+                            {isOwnComment && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    data-testid={`button-comment-menu-${comment.id}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => setEditingComment({ id: comment.id, content: comment.content })}
+                                    data-testid={`button-edit-comment-${comment.id}`}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Düzenle
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => setDeleteCommentId(comment.id)}
+                                    className="text-destructive"
+                                    data-testid={`button-delete-comment-${comment.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Sil
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm">{comment.content}</p>
                       </Card>
@@ -401,6 +481,78 @@ export default function Announcements() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Comment Dialog */}
+      <Dialog open={!!editingComment} onOpenChange={(open) => !open && setEditingComment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yorumu Düzenle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editingComment?.content || ''}
+              onChange={(e) => setEditingComment(editingComment ? { ...editingComment, content: e.target.value } : null)}
+              placeholder="Yorumunuz..."
+              className="min-h-[100px]"
+              data-testid="input-edit-announcement-comment"
+            />
+            <p className="text-sm text-muted-foreground">
+              Düzenlenen yorumlar tekrar yönetici onayına gönderilir.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingComment(null)}>
+                İptal
+              </Button>
+              <Button
+                onClick={() => {
+                  if (editingComment && editingComment.content.trim()) {
+                    editCommentMutation.mutate({ 
+                      commentId: editingComment.id, 
+                      content: editingComment.content 
+                    });
+                  }
+                }}
+                disabled={editCommentMutation.isPending}
+                data-testid="button-save-edit-announcement-comment"
+              >
+                {editCommentMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Kaydet
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Comment Confirmation */}
+      <AlertDialog open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Yorumu Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu yorumu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteCommentId) {
+                  deleteCommentMutation.mutate(deleteCommentId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-announcement-comment"
+            >
+              {deleteCommentMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

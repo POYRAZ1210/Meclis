@@ -7,9 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getIdeas, createIdea, toggleLike, addComment } from "@/lib/api/ideas";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { getIdeas, createIdea, toggleLike, addComment, editComment, deleteComment } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,8 +39,10 @@ export default function Ideas() {
   const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'pdf' | 'document' | undefined>();
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: ideas, isLoading } = useQuery({
@@ -166,6 +170,48 @@ export default function Ideas() {
           variant: "destructive",
         });
       }
+    },
+  });
+
+  const editCommentMutation = useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) => {
+      return editComment(commentId, content);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
+      setEditingComment(null);
+      toast({
+        title: "Yorum düzenlendi!",
+        description: "Yorumunuz tekrar yönetici onayına gönderildi.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => {
+      return deleteComment(commentId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
+      setDeleteCommentId(null);
+      toast({
+        title: "Yorum silindi",
+        description: "Yorumunuz başarıyla silindi.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -486,8 +532,9 @@ export default function Ideas() {
                                 ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                                 : "Anonim";
                               const commentPicture = comment.author?.profile_picture_status === 'approved' ? comment.author?.profile_picture_url : null;
+                              const isOwnComment = profile?.id === comment.author_id;
                               return (
-                                <div key={comment.id} className="flex gap-3">
+                                <div key={comment.id} className="flex gap-3 group">
                                   <Avatar className="h-8 w-8">
                                     {commentPicture && <AvatarImage src={commentPicture} alt={commentAuthor} />}
                                     <AvatarFallback className="text-xs">
@@ -495,9 +542,44 @@ export default function Ideas() {
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1">
-                                    <div className="bg-muted rounded-lg p-3">
-                                      <p className="font-semibold text-sm">{commentAuthor}</p>
-                                      <p className="text-sm">{comment.content}</p>
+                                    <div className="bg-muted rounded-lg p-3 relative">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1">
+                                          <p className="font-semibold text-sm">{commentAuthor}</p>
+                                          <p className="text-sm">{comment.content}</p>
+                                        </div>
+                                        {isOwnComment && (
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                data-testid={`button-comment-menu-${comment.id}`}
+                                              >
+                                                <MoreVertical className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem 
+                                                onClick={() => setEditingComment({ id: comment.id, content: comment.content })}
+                                                data-testid={`button-edit-comment-${comment.id}`}
+                                              >
+                                                <Pencil className="h-4 w-4 mr-2" />
+                                                Düzenle
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem 
+                                                onClick={() => setDeleteCommentId(comment.id)}
+                                                className="text-destructive"
+                                                data-testid={`button-delete-comment-${comment.id}`}
+                                              >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Sil
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        )}
+                                      </div>
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1 ml-3">
                                       {dayjs.utc(comment.created_at).local().fromNow()}
@@ -570,6 +652,78 @@ export default function Ideas() {
           </Card>
         )}
       </div>
+
+      {/* Edit Comment Dialog */}
+      <Dialog open={!!editingComment} onOpenChange={(open) => !open && setEditingComment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yorumu Düzenle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editingComment?.content || ''}
+              onChange={(e) => setEditingComment(editingComment ? { ...editingComment, content: e.target.value } : null)}
+              placeholder="Yorumunuz..."
+              className="min-h-[100px]"
+              data-testid="input-edit-comment"
+            />
+            <p className="text-sm text-muted-foreground">
+              Düzenlenen yorumlar tekrar yönetici onayına gönderilir.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingComment(null)}>
+                İptal
+              </Button>
+              <Button
+                onClick={() => {
+                  if (editingComment && editingComment.content.trim()) {
+                    editCommentMutation.mutate({ 
+                      commentId: editingComment.id, 
+                      content: editingComment.content 
+                    });
+                  }
+                }}
+                disabled={editCommentMutation.isPending}
+                data-testid="button-save-edit-comment"
+              >
+                {editCommentMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Kaydet
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Comment Confirmation */}
+      <AlertDialog open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Yorumu Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu yorumu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteCommentId) {
+                  deleteCommentMutation.mutate(deleteCommentId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-comment"
+            >
+              {deleteCommentMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

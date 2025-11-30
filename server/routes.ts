@@ -423,6 +423,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Edit own announcement comment (sets status back to pending for re-approval)
+  app.patch('/api/announcement-comments/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: 'Yorum içeriği boş olamaz' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      // Check if user owns this comment
+      const { data: comment, error: commentError } = await supabaseAdmin
+        .from('announcement_comments')
+        .select('author_id')
+        .eq('id', id)
+        .single();
+
+      if (commentError || !comment) {
+        return res.status(404).json({ error: 'Yorum bulunamadı' });
+      }
+
+      if (comment.author_id !== profile.id) {
+        return res.status(403).json({ error: 'Bu yorumu düzenleme yetkiniz yok' });
+      }
+
+      // Update comment and set status back to pending
+      const { data: updatedComment, error } = await supabaseAdmin
+        .from('announcement_comments')
+        .update({
+          content: content.trim(),
+          status: 'pending',
+          reviewed_by: null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(updatedComment);
+    } catch (error: any) {
+      console.error('Error editing announcement comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete own announcement comment
+  app.delete('/api/announcement-comments/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      // Check if user owns this comment
+      const { data: comment, error: commentError } = await supabaseAdmin
+        .from('announcement_comments')
+        .select('author_id')
+        .eq('id', id)
+        .single();
+
+      if (commentError || !comment) {
+        return res.status(404).json({ error: 'Yorum bulunamadı' });
+      }
+
+      if (comment.author_id !== profile.id) {
+        return res.status(403).json({ error: 'Bu yorumu silme yetkiniz yok' });
+      }
+
+      // Delete the comment
+      const { error } = await supabaseAdmin
+        .from('announcement_comments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting announcement comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ============================================
   // BLÜTEN
   // ============================================
