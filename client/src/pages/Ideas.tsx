@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -41,6 +41,7 @@ export default function Ideas() {
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string; ideaId: string } | null>(null);
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const [, setLocation] = useLocation();
@@ -143,7 +144,7 @@ export default function Ideas() {
   });
 
   const commentMutation = useMutation({
-    mutationFn: ({ ideaId, content }: { ideaId: string; content: string }) => {
+    mutationFn: ({ ideaId, content, parentId }: { ideaId: string; content: string; parentId?: string }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -152,13 +153,14 @@ export default function Ideas() {
         setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
-      return addComment(ideaId, content);
+      return addComment(ideaId, content, parentId);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       setCommentText({ ...commentText, [variables.ideaId]: '' });
+      setReplyingTo(null);
       toast({
-        title: "Yorum gönderildi!",
+        title: variables.parentId ? "Yanıt gönderildi!" : "Yorum gönderildi!",
         description: "Yorumunuz yönetici onayından sonra yayınlanacak.",
       });
     },
@@ -585,9 +587,25 @@ export default function Ideas() {
                                         )}
                                       </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1 ml-3">
-                                      {dayjs.utc(comment.created_at).local().fromNow()}
-                                    </p>
+                                    <div className="flex items-center gap-3 mt-1 ml-3">
+                                      <p className="text-xs text-muted-foreground">
+                                        {dayjs.utc(comment.created_at).local().fromNow()}
+                                      </p>
+                                      {user && (
+                                        <button
+                                          onClick={() => setReplyingTo({ 
+                                            commentId: comment.id, 
+                                            authorName: commentAuthor, 
+                                            ideaId: idea.id 
+                                          })}
+                                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                                          data-testid={`button-reply-${comment.id}`}
+                                        >
+                                          <Reply className="h-3 w-3" />
+                                          Yanıtla
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -599,35 +617,56 @@ export default function Ideas() {
 
                         {/* Comment Form */}
                         {user ? (
-                          <div className="flex gap-2">
-                            <Textarea
-                              placeholder="Yorum yaz..."
-                              value={commentText[idea.id] || ''}
-                              onChange={(e) => setCommentText({ ...commentText, [idea.id]: e.target.value })}
-                              className="min-h-[60px]"
-                              data-testid={`input-comment-${idea.id}`}
-                            />
-                            <Button
-                              onClick={() => {
-                                if (!commentText[idea.id]?.trim()) {
-                                  toast({
-                                    title: "Eksik bilgi",
-                                    description: "Yorum boş olamaz.",
-                                    variant: "destructive",
+                          <div className="space-y-2">
+                            {replyingTo && replyingTo.ideaId === idea.id && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded-md">
+                                <Reply className="h-4 w-4" />
+                                <span><strong>{replyingTo.authorName}</strong> adlı kişiye yanıt veriyorsunuz</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 ml-auto"
+                                  onClick={() => setReplyingTo(null)}
+                                  data-testid="button-cancel-reply"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <Textarea
+                                placeholder={replyingTo && replyingTo.ideaId === idea.id ? `${replyingTo.authorName} adlı kişiye yanıt yaz...` : "Yorum yaz..."}
+                                value={commentText[idea.id] || ''}
+                                onChange={(e) => setCommentText({ ...commentText, [idea.id]: e.target.value })}
+                                className="min-h-[60px]"
+                                data-testid={`input-comment-${idea.id}`}
+                              />
+                              <Button
+                                onClick={() => {
+                                  if (!commentText[idea.id]?.trim()) {
+                                    toast({
+                                      title: "Eksik bilgi",
+                                      description: "Yorum boş olamaz.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  commentMutation.mutate({ 
+                                    ideaId: idea.id, 
+                                    content: commentText[idea.id],
+                                    parentId: replyingTo?.ideaId === idea.id ? replyingTo.commentId : undefined
                                   });
-                                  return;
-                                }
-                                commentMutation.mutate({ ideaId: idea.id, content: commentText[idea.id] });
-                              }}
-                              disabled={commentMutation.isPending}
-                              data-testid={`button-submit-comment-${idea.id}`}
-                            >
-                              {commentMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
+                                }}
+                                disabled={commentMutation.isPending}
+                                data-testid={`button-submit-comment-${idea.id}`}
+                              >
+                                {commentMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <div className="text-center py-4">

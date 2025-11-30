@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2, Reply, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,7 @@ export default function Announcements() {
   const [newComment, setNewComment] = useState("");
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
   const { toast} = useToast();
   const { user, profile } = useAuth();
   const [, setLocation] = useLocation();
@@ -69,7 +70,7 @@ export default function Announcements() {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (content: string) => {
+    mutationFn: ({ content, parentId }: { content: string; parentId?: string }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -78,14 +79,15 @@ export default function Announcements() {
         setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
-      return addAnnouncementComment(selectedAnnouncement!.id, content);
+      return addAnnouncementComment(selectedAnnouncement!.id, content, parentId);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
       setNewComment("");
+      setReplyingTo(null);
       toast({
         title: "Başarılı",
-        description: "Yorumunuz moderatör onayına gönderildi",
+        description: variables.parentId ? "Yanıtınız moderatör onayına gönderildi" : "Yorumunuz moderatör onayına gönderildi",
       });
     },
     onError: (error: any) => {
@@ -284,16 +286,31 @@ export default function Announcements() {
               </div>
 
               {/* Comment Form */}
-              <div className="mb-6">
+              <div className="mb-6 space-y-2">
+                {replyingTo && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded-md">
+                    <Reply className="h-4 w-4" />
+                    <span><strong>{replyingTo.authorName}</strong> adlı kişiye yanıt veriyorsunuz</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 ml-auto"
+                      onClick={() => setReplyingTo(null)}
+                      data-testid="button-cancel-reply"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Yorum yaz..."
+                    placeholder={replyingTo ? `${replyingTo.authorName} adlı kişiye yanıt yaz...` : "Yorum yaz..."}
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
                         e.preventDefault();
-                        addCommentMutation.mutate(newComment);
+                        addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId });
                       }
                     }}
                     disabled={addCommentMutation.isPending}
@@ -301,7 +318,7 @@ export default function Announcements() {
                   />
                   <Button
                     size="icon"
-                    onClick={() => newComment.trim() && addCommentMutation.mutate(newComment)}
+                    onClick={() => newComment.trim() && addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId })}
                     disabled={!newComment.trim() || addCommentMutation.isPending}
                     data-testid="button-submit-comment"
                   >
@@ -376,7 +393,20 @@ export default function Announcements() {
                             )}
                           </div>
                         </div>
-                        <p className="text-sm">{comment.content}</p>
+                        <p className="text-sm mb-2">{comment.content}</p>
+                        {user && (
+                          <button
+                            onClick={() => setReplyingTo({ 
+                              commentId: comment.id, 
+                              authorName 
+                            })}
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                            data-testid={`button-reply-${comment.id}`}
+                          >
+                            <Reply className="h-3 w-3" />
+                            Yanıtla
+                          </button>
+                        )}
                       </Card>
                     );
                   })}

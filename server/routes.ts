@@ -286,20 +286,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ANNOUNCEMENT COMMENTS
   // ============================================
 
-  // Create announcement comment
+  // Create announcement comment (with optional reply)
   app.post('/api/announcements/:id/comments', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const { content, parent_id } = req.body;
       const userId = (req as any).userId;
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // Get profile ID from auth user ID
+      // Get profile ID and name from auth user ID
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('id')
+        .select('id, first_name, last_name')
         .eq('user_id', userId)
         .single();
 
@@ -310,19 +311,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertAnnouncementCommentSchema.parse({
         announcement_id: id,
         author_id: profile.id,
-        content: req.body.content,
+        content: content,
       });
 
       const { data: comment, error } = await supabaseAdmin
         .from('announcement_comments')
         .insert({
           ...validated,
+          parent_id: parent_id || null,
           status: 'pending',
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // If this is a reply, create notification for the parent comment author
+      if (parent_id) {
+        const { data: parentComment } = await supabaseAdmin
+          .from('announcement_comments')
+          .select('author_id')
+          .eq('id', parent_id)
+          .single();
+
+        if (parentComment && parentComment.author_id !== profile.id) {
+          const replierName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Birisi';
+          const shortContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
+          await supabaseAdmin
+            .from('notifications')
+            .insert({
+              user_id: parentComment.author_id,
+              type: 'reply_received',
+              title: 'Yorumunuza Yanıt Geldi!',
+              message: `${replierName} yorumunuza yanıt verdi: "${shortContent}"`,
+              link: '/duyurular',
+            });
+        }
+      }
 
       res.json(comment);
     } catch (error: any) {
@@ -1416,20 +1441,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add comment to idea
+  // Add comment to idea (with optional reply)
   app.post('/api/ideas/:id/comments', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const { content, parent_id } = req.body;
       const userId = (req as any).userId; // This is the auth user ID
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // Get profile ID from auth user ID
+      // Get profile ID and name from auth user ID
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('id')
+        .select('id, first_name, last_name')
         .eq('user_id', userId)
         .single();
 
@@ -1440,19 +1466,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertCommentSchema.parse({
         idea_id: id,
         author_id: profile.id, // Use profile ID instead of auth user ID
-        content: req.body.content,
+        content: content,
       });
 
       const { data: comment, error } = await supabaseAdmin
         .from('comments')
         .insert({
           ...validated,
+          parent_id: parent_id || null,
           status: 'pending',
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // If this is a reply, create notification for the parent comment author
+      if (parent_id) {
+        const { data: parentComment } = await supabaseAdmin
+          .from('comments')
+          .select('author_id')
+          .eq('id', parent_id)
+          .single();
+
+        if (parentComment && parentComment.author_id !== profile.id) {
+          const replierName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Birisi';
+          const shortContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
+          await supabaseAdmin
+            .from('notifications')
+            .insert({
+              user_id: parentComment.author_id,
+              type: 'reply_received',
+              title: 'Yorumunuza Yanıt Geldi!',
+              message: `${replierName} yorumunuza yanıt verdi: "${shortContent}"`,
+              link: '/fikirler',
+            });
+        }
+      }
 
       res.json(comment);
     } catch (error: any) {
