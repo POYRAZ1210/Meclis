@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2, Reply, X } from "lucide-react";
+import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2, Reply, X, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ export default function Announcements() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [isCommentAnonymous, setIsCommentAnonymous] = useState(false);
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
@@ -70,7 +72,7 @@ export default function Announcements() {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: ({ content, parentId }: { content: string; parentId?: string }) => {
+    mutationFn: ({ content, parentId, isAnonymous }: { content: string; parentId?: string; isAnonymous?: boolean }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -79,11 +81,12 @@ export default function Announcements() {
         setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
-      return addAnnouncementComment(selectedAnnouncement!.id, content, parentId);
+      return addAnnouncementComment(selectedAnnouncement!.id, content, parentId, isAnonymous);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
       setNewComment("");
+      setIsCommentAnonymous(false);
       setReplyingTo(null);
       toast({
         title: "Başarılı",
@@ -310,7 +313,7 @@ export default function Announcements() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
                         e.preventDefault();
-                        addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId });
+                        addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId, isAnonymous: isCommentAnonymous });
                       }
                     }}
                     disabled={addCommentMutation.isPending}
@@ -318,7 +321,7 @@ export default function Announcements() {
                   />
                   <Button
                     size="icon"
-                    onClick={() => newComment.trim() && addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId })}
+                    onClick={() => newComment.trim() && addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId, isAnonymous: isCommentAnonymous })}
                     disabled={!newComment.trim() || addCommentMutation.isPending}
                     data-testid="button-submit-comment"
                   >
@@ -328,6 +331,18 @@ export default function Announcements() {
                       <Send className="h-4 w-4" />
                     )}
                   </Button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="comment-anonymous"
+                    checked={isCommentAnonymous}
+                    onCheckedChange={(checked) => setIsCommentAnonymous(checked === true)}
+                    data-testid="checkbox-comment-anonymous"
+                  />
+                  <Label htmlFor="comment-anonymous" className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground">
+                    <EyeOff className="h-3 w-3" />
+                    Anonim yorum
+                  </Label>
                 </div>
               </div>
 
@@ -339,9 +354,11 @@ export default function Announcements() {
               ) : comments && comments.length > 0 ? (
                 <div className="space-y-4">
                   {comments.map((comment: any) => {
+                    const isCommentAnon = comment.is_anonymous && !comment.author;
                     const authorName = comment.author
                       ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                       : "Anonim";
+                    const showAnonBadge = comment.is_anonymous && comment.author && profile?.role === 'admin';
                     const isOwnComment = profile?.id === comment.author_id;
                     const isAdmin = profile?.role === 'admin';
                     const canModify = isOwnComment || isAdmin;
@@ -349,10 +366,29 @@ export default function Announcements() {
                       <Card key={comment.id} className="p-4" data-testid={`comment-${comment.id}`}>
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-medium text-sm">{authorName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {comment.author?.class_name || ""} {comment.author?.student_no ? `• ${comment.author.student_no}` : ""}
+                            <p className="font-medium text-sm">
+                              {isCommentAnon ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <EyeOff className="h-4 w-4" />
+                                  Anonim
+                                </span>
+                              ) : (
+                                <>
+                                  {authorName}
+                                  {showAnonBadge && (
+                                    <span className="ml-2 text-xs text-muted-foreground font-normal inline-flex items-center gap-1">
+                                      <EyeOff className="h-3 w-3" />
+                                      Anonim
+                                    </span>
+                                  )}
+                                </>
+                              )}
                             </p>
+                            {comment.author && (comment.author.class_name || comment.author.student_no) && (
+                              <p className="text-xs text-muted-foreground">
+                                {comment.author.class_name || ""} {comment.author.student_no ? `• ${comment.author.student_no}` : ""}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-muted-foreground">

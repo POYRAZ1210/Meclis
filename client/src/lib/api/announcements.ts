@@ -157,7 +157,7 @@ export async function getAnnouncementComments(announcementId: string) {
   return res.json();
 }
 
-export async function addAnnouncementComment(announcementId: string, content: string, parentId?: string) {
+export async function addAnnouncementComment(announcementId: string, content: string, parentId?: string, isAnonymous?: boolean) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
@@ -168,7 +168,7 @@ export async function addAnnouncementComment(announcementId: string, content: st
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify({ content, parent_id: parentId }),
+    body: JSON.stringify({ content, parent_id: parentId, is_anonymous: isAnonymous || false }),
   });
 
   if (!res.ok) {

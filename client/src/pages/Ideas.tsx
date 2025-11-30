@@ -5,9 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X, EyeOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -37,6 +39,8 @@ export default function Ideas() {
   const [videoUrl, setVideoUrl] = useState("");
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'pdf' | 'document' | undefined>();
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isCommentAnonymous, setIsCommentAnonymous] = useState<Record<string, boolean>>({});
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
@@ -52,7 +56,7 @@ export default function Ideas() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string; attachmentUrl?: string; attachmentType?: string }) => {
+    mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string; attachmentUrl?: string; attachmentType?: string; is_anonymous?: boolean }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -71,6 +75,7 @@ export default function Ideas() {
       setVideoUrl("");
       setAttachmentUrl("");
       setAttachmentType(undefined);
+      setIsAnonymous(false);
       setOpen(false);
       toast({
         title: "Fikir gönderildi!",
@@ -144,7 +149,7 @@ export default function Ideas() {
   });
 
   const commentMutation = useMutation({
-    mutationFn: ({ ideaId, content, parentId }: { ideaId: string; content: string; parentId?: string }) => {
+    mutationFn: ({ ideaId, content, parentId, isAnonymous }: { ideaId: string; content: string; parentId?: string; isAnonymous?: boolean }) => {
       if (!user) {
         toast({
           title: "Giriş Gerekli",
@@ -153,11 +158,12 @@ export default function Ideas() {
         setTimeout(() => setLocation("/giris"), 1500);
         throw new Error("Giriş yapmanız gerekiyor");
       }
-      return addComment(ideaId, content, parentId);
+      return addComment(ideaId, content, parentId, isAnonymous);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/ideas'] });
       setCommentText({ ...commentText, [variables.ideaId]: '' });
+      setIsCommentAnonymous({ ...isCommentAnonymous, [variables.ideaId]: false });
       setReplyingTo(null);
       toast({
         title: variables.parentId ? "Yanıt gönderildi!" : "Yorum gönderildi!",
@@ -234,6 +240,7 @@ export default function Ideas() {
       videoUrl: videoUrl || undefined,
       attachmentUrl: attachmentUrl || undefined,
       attachmentType: attachmentType || undefined,
+      is_anonymous: isAnonymous,
     });
   };
 
@@ -325,6 +332,23 @@ export default function Ideas() {
                   />
                 </TabsContent>
               </Tabs>
+              
+              <div className="flex items-center space-x-2 py-2 px-3 bg-muted/50 rounded-lg">
+                <Checkbox 
+                  id="anonymous" 
+                  checked={isAnonymous} 
+                  onCheckedChange={(checked) => setIsAnonymous(checked === true)}
+                  data-testid="checkbox-anonymous"
+                />
+                <Label htmlFor="anonymous" className="flex items-center gap-2 cursor-pointer text-sm">
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  Anonim olarak paylaş
+                </Label>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  (Yöneticiler kimliğinizi görebilir)
+                </span>
+              </div>
+              
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-idea">
                   İptal
@@ -360,11 +384,13 @@ export default function Ideas() {
               .sort((a: any, b: any) => (b.likes_count || 0) - (a.likes_count || 0))
               .slice(0, 3)
               .map((idea: any, index: number) => {
+                const isIdeaAnon = idea.is_anonymous && !idea.author;
                 const authorName = idea.author
                   ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
                   : "Anonim";
+                const showIdeaAnonBadge = idea.is_anonymous && idea.author && profile?.role === 'admin';
                 const authorPicture = idea.author?.profile_picture_status === 'approved' ? idea.author?.profile_picture_url : null;
-                const initials = authorName
+                const initials = isIdeaAnon ? "" : authorName
                   .split(" ")
                   .map((n) => n[0])
                   .join("")
@@ -380,9 +406,16 @@ export default function Ideas() {
                     <div className="flex items-center gap-3 mb-3">
                       <Avatar className="h-8 w-8">
                         {authorPicture && <AvatarImage src={authorPicture} alt={authorName} />}
-                        <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                        <AvatarFallback className="text-xs">{isIdeaAnon ? <EyeOff className="h-4 w-4" /> : initials}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium truncate">{authorName}</span>
+                      <span className="text-sm font-medium truncate">
+                        {authorName}
+                        {showIdeaAnonBadge && (
+                          <span className="ml-1 text-xs text-muted-foreground font-normal inline-flex items-center gap-1">
+                            <EyeOff className="h-3 w-3" />
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <h3 className="font-bold mb-2 line-clamp-2">{idea.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{idea.content}</p>
@@ -412,12 +445,14 @@ export default function Ideas() {
       <div className="space-y-4">
         {ideas && ideas.length > 0 ? (
           ideas.map((idea: any) => {
+            const isIdeaAnon = idea.is_anonymous && !idea.author;
             const authorName = idea.author
               ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
               : "Anonim";
-            const authorClass = idea.author?.class_name || "";
+            const showIdeaAnonBadge = idea.is_anonymous && idea.author && profile?.role === 'admin';
+            const authorClass = isIdeaAnon ? "" : (idea.author?.class_name || "");
             const authorPicture = idea.author?.profile_picture_status === 'approved' ? idea.author?.profile_picture_url : null;
-            const initials = authorName
+            const initials = isIdeaAnon ? "" : authorName
               .split(" ")
               .map((n) => n[0])
               .join("")
@@ -429,11 +464,19 @@ export default function Ideas() {
                 <div className="flex gap-4">
                   <Avatar>
                     {authorPicture && <AvatarImage src={authorPicture} alt={authorName} />}
-                    <AvatarFallback>{initials}</AvatarFallback>
+                    <AvatarFallback>{isIdeaAnon ? <EyeOff className="h-5 w-5" /> : initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-baseline gap-2 mb-2">
-                      <span className="font-semibold">{authorName}</span>
+                      <span className="font-semibold">
+                        {authorName}
+                        {showIdeaAnonBadge && (
+                          <span className="ml-2 text-xs text-muted-foreground font-normal inline-flex items-center gap-1">
+                            <EyeOff className="h-3 w-3" />
+                            Anonim
+                          </span>
+                        )}
+                      </span>
                       {authorClass && (
                         <span className="text-sm text-muted-foreground">{authorClass}</span>
                       )}
@@ -530,9 +573,11 @@ export default function Ideas() {
                         {idea.comments && idea.comments.length > 0 ? (
                           <div className="space-y-3">
                             {idea.comments.map((comment: any) => {
+                              const isCommentAnon = comment.is_anonymous && !comment.author;
                               const commentAuthor = comment.author
                                 ? `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
                                 : "Anonim";
+                              const showAnonBadge = comment.is_anonymous && comment.author && profile?.role === 'admin';
                               const commentPicture = comment.author?.profile_picture_status === 'approved' ? comment.author?.profile_picture_url : null;
                               const isOwnComment = profile?.id === comment.author_id;
                               const isAdmin = profile?.role === 'admin';
@@ -542,14 +587,31 @@ export default function Ideas() {
                                   <Avatar className="h-8 w-8">
                                     {commentPicture && <AvatarImage src={commentPicture} alt={commentAuthor} />}
                                     <AvatarFallback className="text-xs">
-                                      {commentAuthor.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                                      {isCommentAnon ? <EyeOff className="h-4 w-4" /> : commentAuthor.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1">
                                     <div className="bg-muted rounded-lg p-3 relative">
                                       <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1">
-                                          <p className="font-semibold text-sm">{commentAuthor}</p>
+                                          <p className="font-semibold text-sm">
+                                            {isCommentAnon ? (
+                                              <span className="inline-flex items-center gap-1">
+                                                <EyeOff className="h-4 w-4" />
+                                                Anonim
+                                              </span>
+                                            ) : (
+                                              <>
+                                                {commentAuthor}
+                                                {showAnonBadge && (
+                                                  <span className="ml-2 text-xs text-muted-foreground font-normal inline-flex items-center gap-1">
+                                                    <EyeOff className="h-3 w-3" />
+                                                    Anonim
+                                                  </span>
+                                                )}
+                                              </>
+                                            )}
+                                          </p>
                                           <p className="text-sm">{comment.content}</p>
                                         </div>
                                         {canModify && (
@@ -654,7 +716,8 @@ export default function Ideas() {
                                   commentMutation.mutate({ 
                                     ideaId: idea.id, 
                                     content: commentText[idea.id],
-                                    parentId: replyingTo?.ideaId === idea.id ? replyingTo.commentId : undefined
+                                    parentId: (replyingTo && replyingTo.ideaId === idea.id) ? replyingTo.commentId : undefined,
+                                    isAnonymous: isCommentAnonymous[idea.id] || false
                                   });
                                 }}
                                 disabled={commentMutation.isPending}
@@ -666,6 +729,18 @@ export default function Ideas() {
                                   <Send className="h-4 w-4" />
                                 )}
                               </Button>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`comment-anonymous-${idea.id}`}
+                                checked={isCommentAnonymous[idea.id] || false}
+                                onCheckedChange={(checked) => setIsCommentAnonymous({ ...isCommentAnonymous, [idea.id]: checked === true })}
+                                data-testid={`checkbox-comment-anonymous-${idea.id}`}
+                              />
+                              <Label htmlFor={`comment-anonymous-${idea.id}`} className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground">
+                                <EyeOff className="h-3 w-3" />
+                                Anonim yorum
+                              </Label>
                             </div>
                           </div>
                         ) : (

@@ -56,6 +56,7 @@ export async function createIdea(data: {
   videoUrl?: string;
   attachmentUrl?: string;
   attachmentType?: string;
+  is_anonymous?: boolean;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
@@ -68,6 +69,7 @@ export async function createIdea(data: {
     video_url: data.videoUrl,
     attachment_url: data.attachmentUrl,
     attachment_type: data.attachmentType,
+    is_anonymous: data.is_anonymous || false,
   };
 
   const res = await fetch('/api/ideas', {
@@ -108,7 +110,7 @@ export async function toggleLike(ideaId: string) {
   return res.json();
 }
 
-export async function addComment(ideaId: string, content: string, parentId?: string) {
+export async function addComment(ideaId: string, content: string, parentId?: string, isAnonymous?: boolean) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
@@ -119,7 +121,7 @@ export async function addComment(ideaId: string, content: string, parentId?: str
       'Authorization': `Bearer ${session.access_token}`,
     },
     credentials: 'include',
-    body: JSON.stringify({ content, parent_id: parentId }),
+    body: JSON.stringify({ content, parent_id: parentId, is_anonymous: isAnonymous || false }),
   });
 
   if (!res.ok) {

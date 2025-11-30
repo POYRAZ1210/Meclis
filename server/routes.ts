@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/announcements/:id/comments', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { content, parent_id } = req.body;
+      const { content, parent_id, is_anonymous } = req.body;
       const userId = (req as any).userId;
 
       if (!supabaseAdmin) {
@@ -312,6 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         announcement_id: id,
         author_id: profile.id,
         content: content,
+        is_anonymous: is_anonymous || false,
       });
 
       const { data: comment, error } = await supabaseAdmin
@@ -366,6 +367,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/announcements/:id/comments', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      
+      // Check if user is admin
+      let isAdmin = false;
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ') && supabaseAdmin) {
+        const token = authHeader.substring(7);
+        try {
+          const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+          if (!error && user) {
+            const { data: profile } = await supabaseAdmin
+              .from('profiles')
+              .select('role')
+              .eq('user_id', user.id)
+              .single();
+            isAdmin = profile?.role === 'admin';
+          }
+        } catch (e) {
+          // Continue without admin status
+        }
+      }
 
       if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase not configured' });
@@ -383,7 +404,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
-      res.json(comments);
+      // Mask anonymous authors for non-admins, but keep is_anonymous flag
+      const processedComments = (comments || []).map((comment: any) => {
+        if (comment.is_anonymous && !isAdmin) {
+          return { 
+            ...comment, 
+            author: null,
+            is_anonymous: true 
+          };
+        }
+        return {
+          ...comment,
+          is_anonymous: comment.is_anonymous || false
+        };
+      });
+
+      res.json(processedComments);
     } catch (error: any) {
       console.error('Error fetching announcement comments:', error);
       res.status(400).json({ error: error.message });
@@ -1168,6 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Extract userId from Authorization header
       let userId: string | null = null;
+      let userRole: string = 'student';
       const authHeader = req.headers.authorization;
       
       if (authHeader?.startsWith('Bearer ')) {
@@ -1177,6 +1214,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
             if (!error && user) {
               userId = user.id;
+              // Get user role
+              const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('role')
+                .eq('user_id', user.id)
+                .single();
+              if (profile) {
+                userRole = profile.role;
+              }
             }
           }
         } catch (e) {
@@ -1189,13 +1235,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const supabase = supabaseAdmin; // Store for closure
+      const isAdmin = userRole === 'admin';
 
       const { data: ideas, error } = await supabase
         .from('ideas')
         .select(`
           *,
           author:profiles!ideas_author_id_fkey(first_name, last_name, class_name, profile_picture_url, profile_picture_status),
-          comments:comments!comments_idea_id_fkey(id, content, created_at, status, author:profiles!comments_author_id_fkey(first_name, last_name, profile_picture_url, profile_picture_status))
+          comments:comments!comments_idea_id_fkey(id, content, created_at, status, is_anonymous, author:profiles!comments_author_id_fkey(first_name, last_name, profile_picture_url, profile_picture_status))
         `)
         .eq('status', 'approved')
         .eq('comments.status', 'approved')
@@ -1203,12 +1250,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
-      // Check which ideas user has liked (only if authenticated)
+      // Check which ideas user has liked and mask anonymous authors for non-admins
       const ideasWithLikes = await Promise.all(
         (ideas || []).map(async (idea: any) => {
+          // Mask author if anonymous and user is not admin
+          let processedIdea = { ...idea };
+          if (idea.is_anonymous && !isAdmin) {
+            processedIdea.author = null;
+          }
+          
+          // Mask comment authors if anonymous and user is not admin
+          if (processedIdea.comments) {
+            processedIdea.comments = processedIdea.comments.map((comment: any) => {
+              if (comment.is_anonymous && !isAdmin) {
+                return { ...comment, author: null };
+              }
+              return comment;
+            });
+          }
+
           if (!userId) {
             return {
-              ...idea,
+              ...processedIdea,
               user_has_liked: false,
             };
           }
@@ -1221,7 +1284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .maybeSingle();
 
           return {
-            ...idea,
+            ...processedIdea,
             user_has_liked: !!userLike,
           };
         })
@@ -1303,6 +1366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: validated.content,
         author_id: profileId, // Use profile ID!
         status: 'pending',
+        is_anonymous: validated.is_anonymous || false,
       };
 
       // Add optional media URLs if provided
@@ -1457,7 +1521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ideas/:id/comments', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { content, parent_id } = req.body;
+      const { content, parent_id, is_anonymous } = req.body;
       const userId = (req as any).userId; // This is the auth user ID
 
       if (!supabaseAdmin) {
@@ -1479,6 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idea_id: id,
         author_id: profile.id, // Use profile ID instead of auth user ID
         content: content,
+        is_anonymous: is_anonymous || false,
       });
 
       const { data: comment, error } = await supabaseAdmin
