@@ -17,6 +17,7 @@ import Admin from "@/pages/Admin";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import AddEmail from "@/pages/AddEmail";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import KullanimSartlari from "@/pages/KullanimSartlari";
@@ -65,6 +66,7 @@ function Router() {
       <Switch>
         <Route path="/giris" component={Login} />
         <Route path="/kayit" component={Register} />
+        <Route path="/email-ekle" component={AddEmail} />
         <Route path="/sifre-sifirla" component={ForgotPassword} />
         <Route path="/auth/reset" component={ResetPassword} />
         <Route path="/">

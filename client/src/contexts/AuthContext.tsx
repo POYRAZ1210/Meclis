@@ -17,12 +17,17 @@ interface Profile {
   profile_picture_status?: 'pending' | 'approved' | 'rejected';
 }
 
+interface SignInWithNameResult {
+  requiresEmail: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithName: (firstName: string, lastName: string, password: string) => Promise<SignInWithNameResult>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -168,6 +173,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw translateSupabaseError(error, 'login');
   }
 
+  async function signInWithName(firstName: string, lastName: string, password: string): Promise<SignInWithNameResult> {
+    // Clear ALL cache before signing in (prevents user data mixing)
+    queryClient.clear();
+    
+    // Call backend API to authenticate with name
+    const response = await fetch('/api/auth/login-with-name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName, password }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Giriş yapılırken bir hata oluştu');
+    }
+    
+    // If user needs to add email, return early
+    if (data.requiresEmail) {
+      // Sign in with the returned session token
+      const { error } = await supabase.auth.setSession({
+        access_token: data.accessToken,
+        refresh_token: data.refreshToken,
+      });
+      if (error) throw translateSupabaseError(error, 'login');
+      return { requiresEmail: true };
+    }
+    
+    // Normal login - set session
+    const { error } = await supabase.auth.setSession({
+      access_token: data.accessToken,
+      refresh_token: data.refreshToken,
+    });
+    if (error) throw translateSupabaseError(error, 'login');
+    
+    return { requiresEmail: false };
+  }
+
   async function signUp(email: string, password: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -241,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signIn,
+    signInWithName,
     signUp,
     signOut,
   };

@@ -1072,6 +1072,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // LOGIN WITH NAME (instead of email)
+  // ============================================
+  app.post('/api/auth/login-with-name', async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Sunucu yapılandırma hatası' });
+      }
+
+      const { firstName, lastName, password } = req.body;
+
+      if (!firstName || !lastName || !password) {
+        return res.status(400).json({ error: 'Ad, soyad ve şifre gereklidir' });
+      }
+
+      // Find user by first name and last name (case-insensitive)
+      const { data: profiles, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, first_name, last_name, email_added')
+        .ilike('first_name', firstName.trim())
+        .ilike('last_name', lastName.trim());
+
+      if (profileError) {
+        console.error('Profile lookup error:', profileError);
+        return res.status(500).json({ error: 'Kullanıcı aranırken hata oluştu' });
+      }
+
+      if (!profiles || profiles.length === 0) {
+        return res.status(401).json({ error: 'Kullanıcı bulunamadı veya şifre hatalı' });
+      }
+
+      // If multiple profiles with same name exist, try each one
+      let authenticatedUser = null;
+      let matchedProfile = null;
+
+      for (const profile of profiles) {
+        // Get user's email from auth.users
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(profile.user_id);
+        
+        if (authError || !authUser?.user?.email) {
+          continue;
+        }
+
+        // Try to sign in with this email
+        const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+          email: authUser.user.email,
+          password: password,
+        });
+
+        if (!signInError && signInData.session) {
+          authenticatedUser = signInData;
+          matchedProfile = profile;
+          break;
+        }
+      }
+
+      if (!authenticatedUser || !authenticatedUser.session) {
+        return res.status(401).json({ error: 'Kullanıcı bulunamadı veya şifre hatalı' });
+      }
+
+      // Check if this is first login (email not added yet)
+      const requiresEmail = !matchedProfile?.email_added;
+
+      res.json({
+        accessToken: authenticatedUser.session.access_token,
+        refreshToken: authenticatedUser.session.refresh_token,
+        requiresEmail: requiresEmail,
+      });
+    } catch (error: any) {
+      console.error('Login with name error:', error);
+      res.status(500).json({ error: 'Giriş yapılırken bir hata oluştu' });
+    }
+  });
+
+  // ============================================
+  // ADD EMAIL TO PROFILE (first login requirement)
+  // ============================================
+  app.post('/api/auth/add-email', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Sunucu yapılandırma hatası' });
+      }
+
+      const userId = (req as any).userId;
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'E-posta adresi gereklidir' });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Geçerli bir e-posta adresi giriniz' });
+      }
+
+      // Update auth user email
+      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email: email.toLowerCase().trim(),
+      });
+
+      if (updateAuthError) {
+        console.error('Update auth email error:', updateAuthError);
+        if (updateAuthError.message?.includes('already registered')) {
+          return res.status(400).json({ error: 'Bu e-posta adresi başka bir hesapta kullanılıyor' });
+        }
+        return res.status(400).json({ error: 'E-posta güncellenemedi' });
+      }
+
+      // Mark email as added in profile
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({ email_added: true })
+        .eq('user_id', userId);
+
+      if (profileError) {
+        console.error('Update profile email_added error:', profileError);
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Add email error:', error);
+      res.status(500).json({ error: 'E-posta eklenirken bir hata oluştu' });
+    }
+  });
+
+  // ============================================
   // PUBLIC STUDENT REGISTRATION (One-time only)
   // ============================================
   app.post('/api/register', async (req: Request, res: Response) => {
