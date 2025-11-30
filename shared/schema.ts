@@ -130,6 +130,17 @@ export const actionLogs = pgTable("action_logs", {
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  link: text("link"),
+  is_read: boolean("is_read").notNull().default(false),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 // ============================================
 // ZOD SCHEMAS & TYPES
 // ============================================
@@ -413,5 +424,37 @@ export interface ActionLog {
   target_id?: string;
   target_type?: string;
   details?: string;
+  created_at: string;
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+export const insertNotificationSchema = z.object({
+  user_id: z.string().uuid(),
+  type: z.enum([
+    'idea_approved',
+    'idea_rejected',
+    'comment_approved',
+    'comment_rejected',
+    'reply_received',
+    'announcement_comment_approved',
+    'announcement_comment_rejected',
+  ]),
+  title: z.string(),
+  message: z.string(),
+  link: z.string().optional(),
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  is_read: boolean;
   created_at: string;
 }

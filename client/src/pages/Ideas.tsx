@@ -533,8 +533,10 @@ export default function Ideas() {
                                 : "Anonim";
                               const commentPicture = comment.author?.profile_picture_status === 'approved' ? comment.author?.profile_picture_url : null;
                               const isOwnComment = profile?.id === comment.author_id;
+                              const isAdmin = profile?.role === 'admin';
+                              const canModify = isOwnComment || isAdmin;
                               return (
-                                <div key={comment.id} className="flex gap-3 group">
+                                <div key={comment.id} className="flex gap-3">
                                   <Avatar className="h-8 w-8">
                                     {commentPicture && <AvatarImage src={commentPicture} alt={commentAuthor} />}
                                     <AvatarFallback className="text-xs">
@@ -548,26 +550,28 @@ export default function Ideas() {
                                           <p className="font-semibold text-sm">{commentAuthor}</p>
                                           <p className="text-sm">{comment.content}</p>
                                         </div>
-                                        {isOwnComment && (
+                                        {canModify && (
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-6 w-6 shrink-0"
                                                 data-testid={`button-comment-menu-${comment.id}`}
                                               >
                                                 <MoreVertical className="h-4 w-4" />
                                               </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                              <DropdownMenuItem 
-                                                onClick={() => setEditingComment({ id: comment.id, content: comment.content })}
-                                                data-testid={`button-edit-comment-${comment.id}`}
-                                              >
-                                                <Pencil className="h-4 w-4 mr-2" />
-                                                Düzenle
-                                              </DropdownMenuItem>
+                                              {isOwnComment && (
+                                                <DropdownMenuItem 
+                                                  onClick={() => setEditingComment({ id: comment.id, content: comment.content })}
+                                                  data-testid={`button-edit-comment-${comment.id}`}
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-2" />
+                                                  Düzenle
+                                                </DropdownMenuItem>
+                                              )}
                                               <DropdownMenuItem 
                                                 onClick={() => setDeleteCommentId(comment.id)}
                                                 className="text-destructive"

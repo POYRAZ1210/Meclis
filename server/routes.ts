@@ -406,6 +406,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Reviewer profile not found" });
       }
 
+      // Get comment info for notification
+      const { data: comment } = await supabaseAdmin
+        .from('announcement_comments')
+        .select('author_id, announcement_id, content')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabaseAdmin
         .from('announcement_comments')
         .update({
@@ -415,6 +422,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Create notification for the comment author
+      if (comment?.author_id) {
+        const shortContent = comment.content.length > 50 
+          ? comment.content.substring(0, 50) + '...' 
+          : comment.content;
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: comment.author_id,
+            type: status === 'approved' ? 'announcement_comment_approved' : 'announcement_comment_rejected',
+            title: status === 'approved' ? 'Yorumunuz Onaylandı!' : 'Yorumunuz Reddedildi',
+            message: status === 'approved' 
+              ? `"${shortContent}" yorumunuz onaylandı ve yayınlandı.`
+              : `"${shortContent}" yorumunuz reddedildi.`,
+            link: status === 'approved' ? '/duyurular' : undefined,
+          });
+      }
 
       res.json({ success: true });
     } catch (error: any) {
@@ -495,10 +520,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Supabase not configured' });
       }
 
-      // Get profile ID from auth user ID
+      // Get profile ID and role from auth user ID
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('id')
+        .select('id, role')
         .eq('user_id', userId)
         .single();
 
@@ -506,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Profil bulunamadı' });
       }
 
-      // Check if user owns this comment
+      // Check if user owns this comment or is admin
       const { data: comment, error: commentError } = await supabaseAdmin
         .from('announcement_comments')
         .select('author_id')
@@ -517,7 +542,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Yorum bulunamadı' });
       }
 
-      if (comment.author_id !== profile.id) {
+      const isOwner = comment.author_id === profile.id;
+      const isAdmin = profile.role === 'admin';
+
+      if (!isOwner && !isAdmin) {
         return res.status(403).json({ error: 'Bu yorumu silme yetkiniz yok' });
       }
 
@@ -1495,8 +1523,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete own comment
+  // Delete comment (own or admin)
   app.delete('/api/comments/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID and role from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      // Check if user owns this comment or is admin
+      const { data: comment, error: commentError } = await supabaseAdmin
+        .from('comments')
+        .select('author_id')
+        .eq('id', id)
+        .single();
+
+      if (commentError || !comment) {
+        return res.status(404).json({ error: 'Yorum bulunamadı' });
+      }
+
+      const isOwner = comment.author_id === profile.id;
+      const isAdmin = profile.role === 'admin';
+
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ error: 'Bu yorumu silme yetkiniz yok' });
+      }
+
+      // Delete the comment
+      const { error } = await supabaseAdmin
+        .from('comments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting comment:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // NOTIFICATIONS
+  // ============================================
+
+  // Get user's notifications
+  app.get('/api/notifications', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      const { data: notifications, error } = await supabaseAdmin
+        .from('notifications')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      res.json(notifications || []);
+    } catch (error: any) {
+      console.error('Error fetching notifications:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get unread notification count
+  app.get('/api/notifications/unread-count', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      const { count, error } = await supabaseAdmin
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      res.json({ count: count || 0 });
+    } catch (error: any) {
+      console.error('Error fetching unread count:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Mark notification as read
+  app.patch('/api/notifications/:id/read', requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = (req as any).userId;
@@ -1516,32 +1673,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Profil bulunamadı' });
       }
 
-      // Check if user owns this comment
-      const { data: comment, error: commentError } = await supabaseAdmin
-        .from('comments')
-        .select('author_id')
-        .eq('id', id)
-        .single();
-
-      if (commentError || !comment) {
-        return res.status(404).json({ error: 'Yorum bulunamadı' });
-      }
-
-      if (comment.author_id !== profile.id) {
-        return res.status(403).json({ error: 'Bu yorumu silme yetkiniz yok' });
-      }
-
-      // Delete the comment
       const { error } = await supabaseAdmin
-        .from('comments')
-        .delete()
-        .eq('id', id);
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id)
+        .eq('user_id', profile.id);
 
       if (error) throw error;
 
       res.json({ success: true });
     } catch (error: any) {
-      console.error('Error deleting comment:', error);
+      console.error('Error marking notification as read:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch('/api/notifications/read-all', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get profile ID from auth user ID
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', profile.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -1618,6 +1795,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Reviewer profile not found" });
       }
 
+      // Get idea info for notification
+      const { data: idea } = await supabaseAdmin
+        .from('ideas')
+        .select('author_id, title')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabaseAdmin
         .from('ideas')
         .update({
@@ -1628,6 +1812,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Create notification for the idea author
+      if (idea?.author_id) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: idea.author_id,
+            type: status === 'approved' ? 'idea_approved' : 'idea_rejected',
+            title: status === 'approved' ? 'Fikriniz Onaylandı!' : 'Fikriniz Reddedildi',
+            message: status === 'approved' 
+              ? `"${idea.title}" başlıklı fikriniz onaylandı ve yayınlandı.`
+              : `"${idea.title}" başlıklı fikriniz reddedildi.`,
+            link: status === 'approved' ? '/fikirler' : undefined,
+          });
+      }
       
       res.json({ success: true });
     } catch (error: any) {
@@ -1687,6 +1886,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Reviewer profile not found" });
       }
 
+      // Get comment info for notification
+      const { data: comment } = await supabaseAdmin
+        .from('comments')
+        .select('author_id, idea_id, content')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabaseAdmin
         .from('comments')
         .update({
@@ -1696,6 +1902,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Create notification for the comment author
+      if (comment?.author_id) {
+        const shortContent = comment.content.length > 50 
+          ? comment.content.substring(0, 50) + '...' 
+          : comment.content;
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: comment.author_id,
+            type: status === 'approved' ? 'comment_approved' : 'comment_rejected',
+            title: status === 'approved' ? 'Yorumunuz Onaylandı!' : 'Yorumunuz Reddedildi',
+            message: status === 'approved' 
+              ? `"${shortContent}" yorumunuz onaylandı ve yayınlandı.`
+              : `"${shortContent}" yorumunuz reddedildi.`,
+            link: status === 'approved' ? '/fikirler' : undefined,
+          });
+      }
       
       res.json({ success: true });
     } catch (error: any) {

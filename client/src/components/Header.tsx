@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import NotificationBell from "@/components/NotificationBell";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -89,6 +90,7 @@ export default function Header({
           </nav>
 
           <div className="flex items-center gap-2">
+            {isAuthenticated && <NotificationBell />}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
