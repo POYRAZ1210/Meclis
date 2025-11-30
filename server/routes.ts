@@ -1089,7 +1089,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user by first name and last name (case-insensitive)
       const { data: profiles, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('user_id, first_name, last_name, email_added')
+        .select('user_id, first_name, last_name')
         .ilike('first_name', firstName.trim())
         .ilike('last_name', lastName.trim());
 
@@ -1131,13 +1131,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Kullanıcı bulunamadı veya şifre hatalı' });
       }
 
-      // Check if this is first login (email not added yet)
-      const requiresEmail = !matchedProfile?.email_added;
+      // For now, don't require email - can be enabled later with email_added column
+      // const requiresEmail = !matchedProfile?.email_added;
 
       res.json({
         accessToken: authenticatedUser.session.access_token,
         refreshToken: authenticatedUser.session.refresh_token,
-        requiresEmail: requiresEmail,
+        requiresEmail: false,
       });
     } catch (error: any) {
       console.error('Login with name error:', error);
