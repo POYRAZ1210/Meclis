@@ -232,9 +232,9 @@ export default function Register() {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>
-                        Sınıf bulunamadı
-                      </SelectItem>
+                      <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                        Henüz sınıf eklenmemiş
+                      </div>
                     )}
                   </SelectContent>
                 </Select>
