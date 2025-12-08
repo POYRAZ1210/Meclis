@@ -6,15 +6,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "lucide-react";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { signInWithName, user, loading: authLoading } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,20 +25,12 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName.trim() || !lastName.trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Ad ve soyad giriniz",
-      });
-      return;
-    }
-    
-    if (!password) {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Şifre giriniz",
+        description: "Geçerli bir e-posta adresi giriniz",
       });
       return;
     }
@@ -48,12 +38,7 @@ export default function Login() {
     setLoading(true);
     
     try {
-      const result = await signInWithName(firstName.trim(), lastName.trim(), password);
-      
-      if (result.requiresEmail) {
-        setLocation("/email-ekle");
-        return;
-      }
+      await signIn(email, password);
       
       toast({
         title: "Başarılı",
@@ -89,39 +74,17 @@ export default function Login() {
         </CardHeader>
         <form onSubmit={handleSubmit} noValidate>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Ad</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="Adınız"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="pl-10"
-                    required
-                    data-testid="input-firstname"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Soyad</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Soyadınız"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="pl-10"
-                    required
-                    data-testid="input-lastname"
-                  />
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-posta</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="ornek@mayaokullari.k12.tr"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                data-testid="input-email"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Şifre</Label>
