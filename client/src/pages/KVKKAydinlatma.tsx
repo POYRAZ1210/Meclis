@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Scale, AlertTriangle, Mail, Building } from "lucide-react";
+import { Scale, AlertTriangle, Building } from "lucide-react";
 
 export default function KVKKAydinlatma() {
   return (
@@ -117,10 +117,6 @@ export default function KVKKAydinlatma() {
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-muted-foreground" />
                     <span>Maya Okulları Öğrenci Meclisi</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>kvkk@mayaokullari.k12.tr</span>
                   </div>
                 </div>
               </section>
