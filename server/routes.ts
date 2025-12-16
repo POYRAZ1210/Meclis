@@ -401,8 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from('announcement_comments')
         .select(`
           *,
-          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name, student_no),
-          parent_comment:announcement_comments!announcement_comments_parent_id_fkey(id, is_anonymous, author:profiles!announcement_comments_author_id_fkey(first_name, last_name))
+          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name, student_no)
         `)
         .eq('announcement_id', id)
         .eq('status', 'approved')
