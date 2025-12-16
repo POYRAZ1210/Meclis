@@ -11,6 +11,7 @@ A Turkish-language school council portal built with React, Express, and Supabase
 - Poll creation and voting
 - Moderated idea/blog submission system
 - Class-based student directory
+- **Events & Applications system** (Katılım & Başvurular) - Dynamic form builder for event registrations
 - Admin moderation panel
 - Authentication with email/password
 
