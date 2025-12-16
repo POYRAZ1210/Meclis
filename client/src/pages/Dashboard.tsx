@@ -449,7 +449,21 @@ export default function Dashboard() {
                                 </DropdownMenu>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground mb-2">{comment.content}</p>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {comment.parent_id && (() => {
+                                const parentComment = comments?.find((c: any) => c.id === comment.parent_id);
+                                const parentIsAnon = parentComment?.is_anonymous && !parentComment?.author;
+                                const parentAuthorName = parentComment?.author 
+                                  ? `${parentComment.author.first_name || ""} ${parentComment.author.last_name || ""}`.trim() 
+                                  : null;
+                                return (
+                                  <span className="text-primary font-medium">
+                                    @{parentIsAnon ? "anoimkişi" : (parentAuthorName || "anoimkişi")}{" "}
+                                  </span>
+                                );
+                              })()}
+                              {comment.content}
+                            </p>
                             {user && (
                               <button
                                 onClick={() => setReplyingTo({ 
