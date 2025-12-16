@@ -401,7 +401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from('announcement_comments')
         .select(`
           *,
-          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name, student_no)
+          author:profiles!announcement_comments_author_id_fkey(first_name, last_name, class_name, student_no),
+          parent_comment:announcement_comments!announcement_comments_parent_id_fkey(id, is_anonymous, author:profiles!announcement_comments_author_id_fkey(first_name, last_name))
         `)
         .eq('announcement_id', id)
         .eq('status', 'approved')
@@ -1456,7 +1457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select(`
           *,
           author:profiles!ideas_author_id_fkey(first_name, last_name, class_name, profile_picture_url, profile_picture_status),
-          comments:comments!comments_idea_id_fkey(id, content, created_at, status, is_anonymous, author:profiles!comments_author_id_fkey(first_name, last_name, profile_picture_url, profile_picture_status))
+          comments:comments!comments_idea_id_fkey(id, content, created_at, status, is_anonymous, author_id, parent_id, author:profiles!comments_author_id_fkey(first_name, last_name, profile_picture_url, profile_picture_status))
         `)
         .eq('status', 'approved')
         .eq('comments.status', 'approved')

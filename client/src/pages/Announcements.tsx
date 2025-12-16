@@ -429,7 +429,18 @@ export default function Announcements() {
                             )}
                           </div>
                         </div>
-                        <p className="text-sm mb-2">{comment.content}</p>
+                        <p className="text-sm mb-2">
+                          {comment.parent_id && (
+                            <span className="text-primary font-medium">
+                              @{comment.parent_comment?.is_anonymous 
+                                ? "anoimkişi" 
+                                : comment.parent_comment?.author 
+                                  ? `${comment.parent_comment.author.first_name || ""} ${comment.parent_comment.author.last_name || ""}`.trim() || "anoimkişi"
+                                  : "anoimkişi"}{" "}
+                            </span>
+                          )}
+                          {comment.content}
+                        </p>
                         {user && (
                           <button
                             onClick={() => setReplyingTo({ 
