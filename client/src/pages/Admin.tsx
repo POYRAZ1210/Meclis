@@ -19,13 +19,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus, Calendar, Edit2, ClipboardList } from "lucide-react";
 import { getAdminProfiles, updateProfile, getClasses, createClass, deleteClass, type SchoolClass } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
 import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture, suspendUser, activateUser, resetUserProfilePicture, deleteComment, clearIdeaLikes } from "@/lib/api/admin";
+import { getAdminEvents, createEvent, updateEvent, deleteEvent, getEventApplications, type EventApplicationWithProfile } from "@/lib/api/events";
+import type { Event, FormField } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -58,6 +63,36 @@ export default function Admin() {
   const { toast } = useToast();
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newClassName, setNewClassName] = useState("");
+
+  // Events state
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [viewingApplicationsEvent, setViewingApplicationsEvent] = useState<Event | null>(null);
+  const [eventApplications, setEventApplications] = useState<EventApplicationWithProfile[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+  
+  // Event form state
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDescription, setNewEventDescription] = useState("");
+  const [newEventActive, setNewEventActive] = useState(true);
+  const [newEventFormFields, setNewEventFormFields] = useState<FormField[]>([]);
+  
+  // Edit event form state  
+  const [editEventName, setEditEventName] = useState("");
+  const [editEventDescription, setEditEventDescription] = useState("");
+  const [editEventActive, setEditEventActive] = useState(true);
+  const [editEventFormFields, setEditEventFormFields] = useState<FormField[]>([]);
+  
+  // Form field builder state (for new event)
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'select'>('text');
+  const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [newFieldOptions, setNewFieldOptions] = useState("");
+  
+  // Form field builder state (for edit event)
+  const [editFieldLabel, setEditFieldLabel] = useState("");
+  const [editFieldType, setEditFieldType] = useState<'text' | 'textarea' | 'select'>('text');
+  const [editFieldRequired, setEditFieldRequired] = useState(false);
+  const [editFieldOptions, setEditFieldOptions] = useState("");
 
   // Classes
   const { data: classes, isLoading: loadingClasses } = useQuery({
@@ -204,6 +239,112 @@ export default function Admin() {
     queryKey: ["/api/admin/polls"],
     queryFn: getAdminPolls,
   });
+
+  const { data: events, isLoading: loadingEvents } = useQuery({
+    queryKey: ["/api/admin/events"],
+    queryFn: getAdminEvents,
+  });
+
+  const createEventMutation = useMutation({
+    mutationFn: createEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      setNewEventName("");
+      setNewEventDescription("");
+      setNewEventActive(true);
+      setNewEventFormFields([]);
+      toast({ description: "Etkinlik oluşturuldu" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Etkinlik oluşturulurken hata oluştu" });
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateEvent(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      setEditingEvent(null);
+      toast({ description: "Etkinlik güncellendi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Etkinlik güncellenirken hata oluştu" });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: deleteEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      toast({ description: "Etkinlik silindi" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Etkinlik silinirken hata oluştu" });
+    },
+  });
+
+  const handleViewApplications = async (event: Event) => {
+    setViewingApplicationsEvent(event);
+    setLoadingApplications(true);
+    try {
+      const applications = await getEventApplications(event.id);
+      setEventApplications(applications);
+    } catch (error: any) {
+      toast({ variant: "destructive", description: error.message || "Başvurular yüklenirken hata oluştu" });
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setEditEventName(event.name);
+    setEditEventDescription(event.description || "");
+    setEditEventActive(event.is_active);
+    setEditEventFormFields(event.form_fields || []);
+  };
+
+  const addFormField = (isEdit: boolean) => {
+    const label = isEdit ? editFieldLabel : newFieldLabel;
+    const type = isEdit ? editFieldType : newFieldType;
+    const required = isEdit ? editFieldRequired : newFieldRequired;
+    const options = isEdit ? editFieldOptions : newFieldOptions;
+    
+    if (!label.trim()) {
+      toast({ variant: "destructive", description: "Alan adı gerekli" });
+      return;
+    }
+    
+    const newField: FormField = {
+      id: Date.now().toString(),
+      label: label.trim(),
+      type,
+      required,
+      options: type === 'select' ? options.split(',').map(o => o.trim()).filter(o => o) : undefined,
+    };
+    
+    if (isEdit) {
+      setEditEventFormFields([...editEventFormFields, newField]);
+      setEditFieldLabel("");
+      setEditFieldType('text');
+      setEditFieldRequired(false);
+      setEditFieldOptions("");
+    } else {
+      setNewEventFormFields([...newEventFormFields, newField]);
+      setNewFieldLabel("");
+      setNewFieldType('text');
+      setNewFieldRequired(false);
+      setNewFieldOptions("");
+    }
+  };
+
+  const removeFormField = (fieldId: string, isEdit: boolean) => {
+    if (isEdit) {
+      setEditEventFormFields(editEventFormFields.filter(f => f.id !== fieldId));
+    } else {
+      setNewEventFormFields(newEventFormFields.filter(f => f.id !== fieldId));
+    }
+  };
 
   const deleteAnnouncementMutation = useMutation({
     mutationFn: (announcementId: string) => deleteAnnouncement(announcementId),
@@ -445,6 +586,10 @@ export default function Admin() {
           <TabsTrigger value="classes" data-testid="tab-classes">
             <GraduationCap className="h-4 w-4 mr-2" />
             Sınıflar
+          </TabsTrigger>
+          <TabsTrigger value="events" data-testid="tab-events">
+            <Calendar className="h-4 w-4 mr-2" />
+            Etkinlikler
           </TabsTrigger>
         </TabsList>
 
@@ -1207,7 +1352,482 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="events">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Yeni Etkinlik Oluştur
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-name">Etkinlik Adı *</Label>
+                      <Input
+                        id="event-name"
+                        placeholder="Etkinlik adını girin"
+                        value={newEventName}
+                        onChange={(e) => setNewEventName(e.target.value)}
+                        data-testid="input-event-name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-description">Açıklama</Label>
+                      <Input
+                        id="event-description"
+                        placeholder="Etkinlik açıklaması (isteğe bağlı)"
+                        value={newEventDescription}
+                        onChange={(e) => setNewEventDescription(e.target.value)}
+                        data-testid="input-event-description"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="event-active"
+                      checked={newEventActive}
+                      onCheckedChange={setNewEventActive}
+                      data-testid="switch-event-active"
+                    />
+                    <Label htmlFor="event-active">Etkinlik Aktif</Label>
+                  </div>
+
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-medium">Form Alanları Oluşturucu</h4>
+                    
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <div className="space-y-2">
+                        <Label>Alan Adı</Label>
+                        <Input
+                          placeholder="Örn: Telefon Numarası"
+                          value={newFieldLabel}
+                          onChange={(e) => setNewFieldLabel(e.target.value)}
+                          data-testid="input-field-label"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alan Tipi</Label>
+                        <Select value={newFieldType} onValueChange={(v: 'text' | 'textarea' | 'select') => setNewFieldType(v)}>
+                          <SelectTrigger data-testid="select-field-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Metin</SelectItem>
+                            <SelectItem value="textarea">Uzun Metin</SelectItem>
+                            <SelectItem value="select">Seçim Listesi</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="field-required"
+                            checked={newFieldRequired}
+                            onCheckedChange={setNewFieldRequired}
+                            data-testid="switch-field-required"
+                          />
+                          <Label htmlFor="field-required">Zorunlu</Label>
+                        </div>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => addFormField(false)}
+                          data-testid="button-add-field"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Ekle
+                        </Button>
+                      </div>
+                    </div>
+
+                    {newFieldType === 'select' && (
+                      <div className="space-y-2">
+                        <Label>Seçenekler (virgülle ayırın)</Label>
+                        <Input
+                          placeholder="Örn: Seçenek 1, Seçenek 2, Seçenek 3"
+                          value={newFieldOptions}
+                          onChange={(e) => setNewFieldOptions(e.target.value)}
+                          data-testid="input-field-options"
+                        />
+                      </div>
+                    )}
+
+                    {newEventFormFields.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Eklenen Alanlar:</Label>
+                        <div className="space-y-2">
+                          {newEventFormFields.map((field) => (
+                            <div key={field.id} className="flex items-center justify-between bg-muted p-2 rounded" data-testid={`field-preview-${field.id}`}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{field.label}</span>
+                                <Badge variant="secondary">{field.type === 'text' ? 'Metin' : field.type === 'textarea' ? 'Uzun Metin' : 'Seçim'}</Badge>
+                                {field.required && <Badge variant="destructive">Zorunlu</Badge>}
+                                {field.options && field.options.length > 0 && (
+                                  <span className="text-xs text-muted-foreground">({field.options.join(', ')})</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeFormField(field.id, false)}
+                                data-testid={`button-remove-field-${field.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (!newEventName.trim()) {
+                        toast({ variant: "destructive", description: "Etkinlik adı gerekli" });
+                        return;
+                      }
+                      createEventMutation.mutate({
+                        name: newEventName.trim(),
+                        description: newEventDescription.trim() || undefined,
+                        is_active: newEventActive,
+                        form_fields: newEventFormFields,
+                      });
+                    }}
+                    disabled={!newEventName.trim() || createEventMutation.isPending}
+                    data-testid="button-create-event"
+                  >
+                    {createEventMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
+                    Etkinlik Oluştur
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Mevcut Etkinlikler ({events?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingEvents ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : events && events.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ad</TableHead>
+                        <TableHead>Açıklama</TableHead>
+                        <TableHead>Durum</TableHead>
+                        <TableHead>Form Alanları</TableHead>
+                        <TableHead>Oluşturulma</TableHead>
+                        <TableHead className="text-right">İşlemler</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {events.map((event) => (
+                        <TableRow key={event.id} data-testid={`row-event-${event.id}`}>
+                          <TableCell className="font-medium">{event.name}</TableCell>
+                          <TableCell className="max-w-xs truncate text-muted-foreground">
+                            {event.description || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={event.is_active ? 'default' : 'secondary'}>
+                              {event.is_active ? 'Aktif' : 'Pasif'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{event.form_fields?.length || 0} alan</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {dayjs(event.created_at).format("DD MMM YYYY")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewApplications(event)}
+                                title="Başvuruları Görüntüle"
+                                data-testid={`button-view-applications-${event.id}`}
+                              >
+                                <ClipboardList className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditEvent(event)}
+                                title="Düzenle"
+                                data-testid={`button-edit-event-${event.id}`}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm(`"${event.name}" etkinliğini silmek istediğinize emin misiniz?`)) {
+                                    deleteEventMutation.mutate(event.id);
+                                  }
+                                }}
+                                title="Sil"
+                                data-testid={`button-delete-event-${event.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Henüz etkinlik oluşturulmamış.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {/* Event Edit Dialog */}
+      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Etkinlik Düzenle</DialogTitle>
+          </DialogHeader>
+          {editingEvent && (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-name">Etkinlik Adı *</Label>
+                  <Input
+                    id="edit-event-name"
+                    placeholder="Etkinlik adını girin"
+                    value={editEventName}
+                    onChange={(e) => setEditEventName(e.target.value)}
+                    data-testid="input-edit-event-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-description">Açıklama</Label>
+                  <Input
+                    id="edit-event-description"
+                    placeholder="Etkinlik açıklaması (isteğe bağlı)"
+                    value={editEventDescription}
+                    onChange={(e) => setEditEventDescription(e.target.value)}
+                    data-testid="input-edit-event-description"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="edit-event-active"
+                  checked={editEventActive}
+                  onCheckedChange={setEditEventActive}
+                  data-testid="switch-edit-event-active"
+                />
+                <Label htmlFor="edit-event-active">Etkinlik Aktif</Label>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4">
+                <h4 className="font-medium">Form Alanları</h4>
+                
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label>Alan Adı</Label>
+                    <Input
+                      placeholder="Örn: Telefon Numarası"
+                      value={editFieldLabel}
+                      onChange={(e) => setEditFieldLabel(e.target.value)}
+                      data-testid="input-edit-field-label"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Alan Tipi</Label>
+                    <Select value={editFieldType} onValueChange={(v: 'text' | 'textarea' | 'select') => setEditFieldType(v)}>
+                      <SelectTrigger data-testid="select-edit-field-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Metin</SelectItem>
+                        <SelectItem value="textarea">Uzun Metin</SelectItem>
+                        <SelectItem value="select">Seçim Listesi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="edit-field-required"
+                        checked={editFieldRequired}
+                        onCheckedChange={setEditFieldRequired}
+                        data-testid="switch-edit-field-required"
+                      />
+                      <Label htmlFor="edit-field-required">Zorunlu</Label>
+                    </div>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => addFormField(true)}
+                      data-testid="button-edit-add-field"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ekle
+                    </Button>
+                  </div>
+                </div>
+
+                {editFieldType === 'select' && (
+                  <div className="space-y-2">
+                    <Label>Seçenekler (virgülle ayırın)</Label>
+                    <Input
+                      placeholder="Örn: Seçenek 1, Seçenek 2, Seçenek 3"
+                      value={editFieldOptions}
+                      onChange={(e) => setEditFieldOptions(e.target.value)}
+                      data-testid="input-edit-field-options"
+                    />
+                  </div>
+                )}
+
+                {editEventFormFields.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Mevcut Alanlar:</Label>
+                    <div className="space-y-2">
+                      {editEventFormFields.map((field) => (
+                        <div key={field.id} className="flex items-center justify-between bg-muted p-2 rounded" data-testid={`edit-field-preview-${field.id}`}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{field.label}</span>
+                            <Badge variant="secondary">{field.type === 'text' ? 'Metin' : field.type === 'textarea' ? 'Uzun Metin' : 'Seçim'}</Badge>
+                            {field.required && <Badge variant="destructive">Zorunlu</Badge>}
+                            {field.options && field.options.length > 0 && (
+                              <span className="text-xs text-muted-foreground">({field.options.join(', ')})</span>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFormField(field.id, true)}
+                            data-testid={`button-edit-remove-field-${field.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditingEvent(null)} data-testid="button-cancel-edit-event">
+                  İptal
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!editEventName.trim()) {
+                      toast({ variant: "destructive", description: "Etkinlik adı gerekli" });
+                      return;
+                    }
+                    updateEventMutation.mutate({
+                      id: editingEvent.id,
+                      data: {
+                        name: editEventName.trim(),
+                        description: editEventDescription.trim() || undefined,
+                        is_active: editEventActive,
+                        form_fields: editEventFormFields,
+                      },
+                    });
+                  }}
+                  disabled={!editEventName.trim() || updateEventMutation.isPending}
+                  data-testid="button-save-event"
+                >
+                  {updateEventMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-2" />
+                  )}
+                  Kaydet
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Applications Dialog */}
+      <Dialog open={!!viewingApplicationsEvent} onOpenChange={(open) => !open && setViewingApplicationsEvent(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Başvurular - {viewingApplicationsEvent?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {loadingApplications ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : eventApplications.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Öğrenci</TableHead>
+                  <TableHead>Sınıf</TableHead>
+                  <TableHead>Yanıtlar</TableHead>
+                  <TableHead>Başvuru Tarihi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {eventApplications.map((app) => (
+                  <TableRow key={app.id} data-testid={`row-application-${app.id}`}>
+                    <TableCell className="font-medium">
+                      {app.profile?.first_name} {app.profile?.last_name}
+                      {app.profile?.student_no && (
+                        <span className="text-muted-foreground ml-1">({app.profile.student_no})</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{app.profile?.class_name || '-'}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1 max-w-md">
+                        {Object.entries(app.responses || {}).map(([key, value]) => (
+                          <div key={key} className="text-sm">
+                            <span className="font-medium">{key}:</span>{' '}
+                            <span className="text-muted-foreground">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {dayjs(app.created_at).format("DD MMM YYYY HH:mm")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Bu etkinliğe henüz başvuru yapılmamış.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Idea Detail Dialog */}
       <Dialog open={!!selectedIdea} onOpenChange={(open) => !open && setSelectedIdea(null)}>

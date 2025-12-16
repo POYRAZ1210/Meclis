@@ -22,6 +22,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import KullanimSartlari from "@/pages/KullanimSartlari";
 import GizlilikPolitikasi from "@/pages/GizlilikPolitikasi";
 import KVKKAydinlatma from "@/pages/KVKKAydinlatma";
+import Basvurular from "@/pages/Basvurular";
 import NotFound from "@/pages/not-found";
 import CookieBanner from "@/components/CookieBanner";
 
@@ -95,6 +96,11 @@ function Router() {
         <Route path="/fikirler">
           <ProtectedRoute requireAuth={false}>
             <Ideas />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/basvurular">
+          <ProtectedRoute requireAuth={true}>
+            <Basvurular />
           </ProtectedRoute>
         </Route>
         <Route path="/siniflar">

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ============================================
@@ -149,6 +149,24 @@ export const notifications = pgTable("notifications", {
   message: text("message").notNull(),
   link: text("link"),
   is_read: boolean("is_read").notNull().default(false),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  is_active: boolean("is_active").notNull().default(true),
+  form_fields: jsonb("form_fields").notNull().default([]),
+  created_by: varchar("created_by"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const eventApplications = pgTable("event_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  event_id: varchar("event_id").notNull(),
+  profile_id: varchar("profile_id").notNull(),
+  responses: jsonb("responses").notNull().default({}),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -502,5 +520,66 @@ export interface Notification {
   message: string;
   link?: string;
   is_read: boolean;
+  created_at: string;
+}
+
+// ============================================
+// EVENTS (Etkinlikler)
+// ============================================
+export const formFieldSchema = z.object({
+  id: z.string(),
+  label: z.string().min(1, "Alan adı gerekli"),
+  type: z.enum(['text', 'textarea', 'select']),
+  required: z.boolean().default(false),
+  options: z.array(z.string()).optional(),
+});
+
+export type FormField = z.infer<typeof formFieldSchema>;
+
+export const insertEventSchema = z.object({
+  name: z.string().min(3, "Etkinlik adı en az 3 karakter olmalı"),
+  description: z.string().optional(),
+  is_active: z.boolean().default(true),
+  form_fields: z.array(formFieldSchema).default([]),
+  created_by: z.string().uuid().optional(),
+});
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+
+export const updateEventSchema = z.object({
+  name: z.string().min(3, "Etkinlik adı en az 3 karakter olmalı").optional(),
+  description: z.string().optional(),
+  is_active: z.boolean().optional(),
+  form_fields: z.array(formFieldSchema).optional(),
+});
+
+export type UpdateEvent = z.infer<typeof updateEventSchema>;
+
+export interface Event {
+  id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  form_fields: FormField[];
+  created_by?: string;
+  created_at: string;
+}
+
+// ============================================
+// EVENT APPLICATIONS (Başvurular)
+// ============================================
+export const insertEventApplicationSchema = z.object({
+  event_id: z.string().uuid(),
+  profile_id: z.string().uuid(),
+  responses: z.record(z.string(), z.any()),
+});
+
+export type InsertEventApplication = z.infer<typeof insertEventApplicationSchema>;
+
+export interface EventApplication {
+  id: string;
+  event_id: string;
+  profile_id: string;
+  responses: Record<string, any>;
   created_at: string;
 }

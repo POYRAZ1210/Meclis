@@ -14,6 +14,9 @@ import {
   insertAnnouncementCommentSchema,
   studentRegistrationSchema,
   insertClassSchema,
+  insertEventSchema,
+  updateEventSchema,
+  insertEventApplicationSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads (in-memory storage)
@@ -2647,6 +2650,356 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error clearing likes:', error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // EVENTS (Etkinlikler) MANAGEMENT
+  // ============================================
+
+  // Get all events (admin only)
+  app.get('/api/admin/events', requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      console.error('Error fetching events:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create event (admin only)
+  app.post('/api/admin/events', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      const profileId = await getProfileId(userId);
+      
+      const validated = insertEventSchema.parse(req.body);
+
+      const { data, error } = await supabaseAdmin
+        .from('events')
+        .insert({
+          name: validated.name,
+          description: validated.description || null,
+          is_active: validated.is_active,
+          form_fields: validated.form_fields,
+          created_by: profileId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error creating event:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update event (admin only)
+  app.patch('/api/admin/events/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+      const validated = updateEventSchema.parse(req.body);
+
+      const updateData: any = {};
+      if (validated.name !== undefined) updateData.name = validated.name;
+      if (validated.description !== undefined) updateData.description = validated.description;
+      if (validated.is_active !== undefined) updateData.is_active = validated.is_active;
+      if (validated.form_fields !== undefined) updateData.form_fields = validated.form_fields;
+
+      const { data, error } = await supabaseAdmin
+        .from('events')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error updating event:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete event (admin only)
+  app.delete('/api/admin/events/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+
+      // First delete all applications for this event
+      await supabaseAdmin
+        .from('event_applications')
+        .delete()
+        .eq('event_id', id);
+
+      // Then delete the event
+      const { error } = await supabaseAdmin
+        .from('events')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting event:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get applications for an event (admin only)
+  app.get('/api/admin/events/:id/applications', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+
+      const { data, error } = await supabaseAdmin
+        .from('event_applications')
+        .select(`
+          *,
+          profile:profiles!event_applications_profile_id_fkey(first_name, last_name, class_name, student_no, user_id)
+        `)
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get email addresses from auth.users
+      const applicationsWithEmail = await Promise.all(
+        (data || []).map(async (app: any) => {
+          let email = '';
+          if (app.profile?.user_id) {
+            const { data: userData } = await supabaseAdmin.auth.admin.getUserById(app.profile.user_id);
+            email = userData?.user?.email || '';
+          }
+          return {
+            ...app,
+            profile: {
+              ...app.profile,
+              email,
+            },
+          };
+        })
+      );
+
+      res.json(applicationsWithEmail);
+    } catch (error: any) {
+      console.error('Error fetching event applications:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // EVENTS - PUBLIC (Öğrenci tarafı)
+  // ============================================
+
+  // Get active events (authenticated users)
+  app.get('/api/events', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      const profileId = await getProfileId(userId);
+
+      // Get active events
+      const { data: events, error } = await supabaseAdmin
+        .from('events')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Check which events the user has already applied to
+      if (profileId && events && events.length > 0) {
+        const { data: applications } = await supabaseAdmin
+          .from('event_applications')
+          .select('event_id')
+          .eq('profile_id', profileId);
+
+        const appliedEventIds = new Set((applications || []).map((a: any) => a.event_id));
+        
+        const eventsWithStatus = events.map((event: any) => ({
+          ...event,
+          has_applied: appliedEventIds.has(event.id),
+        }));
+
+        return res.json(eventsWithStatus);
+      }
+
+      res.json(events || []);
+    } catch (error: any) {
+      console.error('Error fetching events:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get single event details
+  app.get('/api/events/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+      const userId = (req as any).userId;
+      const profileId = await getProfileId(userId);
+
+      const { data: event, error } = await supabaseAdmin
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      // Check if user has already applied
+      let has_applied = false;
+      if (profileId) {
+        const { data: application } = await supabaseAdmin
+          .from('event_applications')
+          .select('id')
+          .eq('event_id', id)
+          .eq('profile_id', profileId)
+          .maybeSingle();
+        
+        has_applied = !!application;
+      }
+
+      res.json({ ...event, has_applied });
+    } catch (error: any) {
+      console.error('Error fetching event:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Submit application to an event
+  app.post('/api/events/:id/apply', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+      const userId = (req as any).userId;
+      const profileId = await getProfileId(userId);
+
+      if (!profileId) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      // Check if event exists and is active
+      const { data: event, error: eventError } = await supabaseAdmin
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (eventError || !event) {
+        return res.status(404).json({ error: 'Etkinlik bulunamadı' });
+      }
+
+      if (!event.is_active) {
+        return res.status(400).json({ error: 'Bu etkinlik artık başvuruya kapalı' });
+      }
+
+      // Check if user has already applied
+      const { data: existingApp } = await supabaseAdmin
+        .from('event_applications')
+        .select('id')
+        .eq('event_id', id)
+        .eq('profile_id', profileId)
+        .maybeSingle();
+
+      if (existingApp) {
+        return res.status(409).json({ error: 'Bu etkinliğe zaten başvurdunuz' });
+      }
+
+      // Validate responses against form fields
+      const { responses } = req.body;
+      const formFields = event.form_fields as any[];
+      
+      for (const field of formFields) {
+        if (field.required && (!responses || !responses[field.id] || responses[field.id].trim() === '')) {
+          return res.status(400).json({ error: `${field.label} alanı zorunludur` });
+        }
+      }
+
+      // Create application
+      const { data, error } = await supabaseAdmin
+        .from('event_applications')
+        .insert({
+          event_id: id,
+          profile_id: profileId,
+          responses: responses || {},
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get user's own application for an event
+  app.get('/api/events/:id/my-application', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+      const userId = (req as any).userId;
+      const profileId = await getProfileId(userId);
+
+      if (!profileId) {
+        return res.status(400).json({ error: 'Profil bulunamadı' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('event_applications')
+        .select('*')
+        .eq('event_id', id)
+        .eq('profile_id', profileId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching application:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

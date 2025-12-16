@@ -1,0 +1,84 @@
+Mevcut öğrenci meclisi web sitesine
+"Katılım & Başvurular" adında YENİ bir modül ekle.
+
+Bu modül, Google Forms mantığında çalışacak
+DİNAMİK bir başvuru sistemi olacak.
+
+==================================================
+MODÜL AMACI
+==================================================
+
+- Yönetici, yeni etkinlikler oluşturabilecek
+- Yönetici, her etkinlik için hangi bilgilerin isteneceğini belirleyecek
+- Öğrenciler, sadece bu tanımlanan alanları doldurarak başvuru yapacak
+
+Cosplay Yarışması sadece bir ÖRNEKTİR.
+Sistem tüm gelecekteki etkinlikler için kullanılabilir olmalıdır.
+
+==================================================
+YÖNETİCİ TARAFI
+==================================================
+
+Yönetici şunları yapabilmeli:
+
+1) Yeni etkinlik oluşturma
+   - Etkinlik adı
+   - Açıklama
+   - Aktif / Pasif durumu
+
+2) Etkinlik için DİNAMİK FORM ALANLARI ekleme
+   - Alan türleri:
+     - Kısa metin (text)
+     - Uzun metin (textarea)
+     - Seçmeli (select)
+   - Select için seçenekler eklenebilmeli
+   - Alanlar zorunlu veya isteğe bağlı yapılabilmeli
+
+3) Etkinliği düzenleyebilme ve kapatabilme
+
+4) Etkinliğe yapılan tüm başvuruları görüntüleme
+   - Başvuran öğrencinin adı
+   - E-posta
+   - Doldurduğu bilgiler
+   - Başvuru tarihi
+
+==================================================
+ÖĞRENCİ TARAFI
+==================================================
+
+- Öğrenci giriş yapmış olmalı
+- "Katılım & Başvurular" sayfasında sadece AKTİF etkinlikler görünmeli
+- Öğrenci bir etkinliği seçince:
+  - Form, yöneticinin tanımladığı alanlara göre DİNAMİK oluşmalı
+  - Ad, soyad, e-posta otomatik alınmalı (formda SORULMAYACAK)
+
+- Öğrenci her etkinliğe SADECE 1 KEZ başvurabilmeli
+- Başvuru sonrası başarı mesajı gösterilmeli
+
+==================================================
+VERİ YAPISI
+==================================================
+
+Etkinliklerin form yapısı JSON olarak saklanmalı.
+Öğrencinin verdiği cevaplar da JSON olarak kaydedilmeli.
+
+Form alanları KESİNLİKLE hardcode edilmemeli.
+
+==================================================
+KURALLAR
+==================================================
+
+- Admin ve öğrenci ekranları ayrı olacak
+- Güvenlik Supabase RLS ile sağlanacak
+- Öğrenci sadece kendi başvurusunu görebilecek
+- Yönetici tüm başvuruları görebilecek
+
+==================================================
+AMAÇ
+==================================================
+
+Ortaya çıkacak sistem:
+- Ölçeklenebilir
+- Profesyonel
+- Gelecekte tüm okul etkinliklerinde kullanılabilir
+olmalıdır.

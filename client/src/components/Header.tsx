@@ -1,4 +1,4 @@
-import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User } from "lucide-react";
+import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User, ClipboardList } from "lucide-react";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ export default function Header({
     { path: "/bluten", label: "Bülten", icon: Image },
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
+    { path: "/basvurular", label: "Başvurular", icon: ClipboardList, requireAuth: true },
   ];
 
   if (userRole === "admin") {
@@ -71,22 +72,24 @@ export default function Header({
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              return (
-                <Link key={item.path} href={item.path}>
-                  <Button
-                    variant="ghost"
-                    className={isActive ? "bg-accent" : ""}
-                    data-testid={`nav-${item.label.toLowerCase()}`}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.label}
-                  </Button>
-                </Link>
-              );
-            })}
+            {navItems
+              .filter((item) => !item.requireAuth || isAuthenticated)
+              .map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.path;
+                return (
+                  <Link key={item.path} href={item.path}>
+                    <Button
+                      variant="ghost"
+                      className={isActive ? "bg-accent" : ""}
+                      data-testid={`nav-${item.label.toLowerCase()}`}
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -140,23 +143,25 @@ export default function Header({
         </div>
 
         <nav className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            return (
-              <Link key={item.path} href={item.path}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={isActive ? "bg-accent" : ""}
-                  data-testid={`nav-mobile-${item.label.toLowerCase()}`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {item.label}
-                </Button>
-              </Link>
-            );
-          })}
+          {navItems
+            .filter((item) => !item.requireAuth || isAuthenticated)
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              return (
+                <Link key={item.path} href={item.path}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={isActive ? "bg-accent" : ""}
+                    data-testid={`nav-mobile-${item.label.toLowerCase()}`}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
         </nav>
       </div>
     </header>
