@@ -325,6 +325,7 @@ function PollDisplay({
         hasVoted={!!userVote}
         userVote={userVote?.option_id}
         isOpen={poll.is_open}
+        resultsPublished={poll.results_published}
         onVote={onVote}
       />
       {isAdmin && poll.is_open && (
