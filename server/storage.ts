@@ -168,23 +168,53 @@ export class SupabaseStorage implements IStorage {
     
     if (authError) throw authError;
     
-    // Update profile (trigger auto-created it)
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Wait a moment for trigger to create profile
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Try to find existing profile (created by trigger)
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .update({
-        first_name: data.first_name,
-        last_name: data.last_name,
-        role: data.role,
-        class_name: data.class_name,
-        student_no: data.student_no,
-        is_class_president: data.is_class_president,
-      })
+      .select('id')
       .eq('user_id', authUser.user.id)
-      .select()
       .single();
     
-    if (profileError) throw profileError;
-    return profile;
+    if (existingProfile) {
+      // Update existing profile
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          first_name: data.first_name,
+          last_name: data.last_name,
+          role: data.role,
+          class_name: data.class_name,
+          student_no: data.student_no,
+          is_class_president: data.is_class_president,
+        })
+        .eq('id', existingProfile.id)
+        .select()
+        .single();
+      
+      if (profileError) throw profileError;
+      return profile;
+    } else {
+      // Insert new profile if trigger didn't create one
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          user_id: authUser.user.id,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          role: data.role,
+          class_name: data.class_name,
+          student_no: data.student_no,
+          is_class_president: data.is_class_president,
+        })
+        .select()
+        .single();
+      
+      if (profileError) throw profileError;
+      return profile;
+    }
   }
 
   async updateProfile(profileId: string, data: Partial<Profile>): Promise<Profile> {
