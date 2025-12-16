@@ -1,0 +1,64 @@
+Projeyi biliyorsun. Biz şu akışı kurduk:
+
+SİSTEM AKIŞI (ÇALIŞAN KISIM):
+1) Google Forms → yanıtlar otomatik Google Sheets’e düşüyor.
+   Sütunlar:
+   A Timestamp
+   B İsim
+   C Soyisim
+   D Okul No
+   E Email
+   F Şifre
+   G Sınıf
+   H onay (admin manuel EVET/HAYIR)
+   I kayit_edildi (script EVET yazar)
+
+2) Python (gspread + service account) Sheet’i okuyor.
+   Sadece onay == "EVET" ve kayit_edildi != "EVET" satırlarını işliyor.
+
+3) Python Supabase Admin API ile auth kullanıcı oluşturuyor:
+   supabase.auth.admin.create_user({
+     email, password, email_confirm: true,
+     user_metadata: {first_name,last_name,class_name,student_no,role:'student'}
+   })
+   Sonra Sheet’te kayit_edildi’yi EVET yapıyor.
+   Bu kısım şu an stabil: Authentication’a kullanıcı düşüyor.
+
+HATA/PROBLEM (BİZİ BOZAN KISIM):
+- Biz auth oluşunca profiles tablosuna da otomatik kayıt atsın diye trigger eklemeye çalıştık.
+- profiles tablosu CANLI ve bir sürü tablo ona FK ile bağlı:
+  announcements, bluten_posts, ideas, comments, notifications, event_applications vs.
+  Ayrıca RLS ve policy’ler var.
+- Yanlış trigger yüzünden Auth kullanıcı oluşturma çağrısı şu hatayla patladı:
+  "Database error creating new user"
+
+NEDEN PATLADI? (NET TEŞHİS):
+- Trigger auth.users insertinden sonra çalışıyor ve public.profiles’a insert atıyor.
+- Ancak canlı DB’de:
+  - profiles şeması/kolon isimleri bizim varsaydığımız gibi olmayabilir (id vs user_id),
+  - bazı kolonlar NOT NULL/UNIQUE olabilir,
+  - metadata NULL gelebilir,
+  - RLS/policy çakışabilir,
+  - aynı id ile daha önce kısmi kayıt varsa PRIMARY KEY çakışır.
+- Bu durumda trigger’daki INSERT başarısız olunca Supabase bu hatayı Auth katmanına "Database error creating new user" diye yansıtıyor.
+  Yani sorun Python değil, trigger + profiles uyumsuzluğu.
+
+NE YAPTIK SONRA?
+- Sorun çıkarmasın diye tüm trigger/fonksiyonları kaldırdık.
+- Bu sayede Auth tekrar sorunsuz çalışıyor, ama profiles otomatik dolmuyor (normal).
+
+SENDEN İSTEDİĞİM:
+- Bu projede profiles tablosu ve bağlı FK/RLS yapısını bildiğin için,
+  auth.users -> profiles otomatik kaydı için BOZMAYAN çözüm üret.
+
+KRİTİK ŞARTLAR:
+- Auth ASLA bozulmayacak.
+- "Database error creating new user" ASLA olmayacak.
+- Çözüm production-safe olacak.
+- Tercihen iki aşamalı yaklaşım:
+  (A) Minimal trigger: sadece profiles’da id (+ role) yarat, on conflict do nothing.
+  (B) İsim/soyisim/sınıf/no gibi alanları ayrı bir update mekanizmasıyla doldur (Python veya RPC/edge function).
+- Trigger idempotent olacak (duplicate’te patlamayacak).
+- NULL yüzünden patlamayacak.
+
+Bana sadece uygulanabilir çözümü ve gerekli SQL’i ver.
