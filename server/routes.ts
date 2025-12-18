@@ -3315,6 +3315,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/admin/analytics - Get comprehensive analytics data
+  app.get('/api/admin/analytics', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get poll statistics
+      const { data: polls } = await supabaseAdmin
+        .from('polls')
+        .select('id, question, is_open, results_published, created_at');
+
+      const { data: pollVotes } = await supabaseAdmin
+        .from('poll_votes')
+        .select('id, poll_id, option_id, user_id, created_at');
+
+      const { data: pollOptions } = await supabaseAdmin
+        .from('poll_options')
+        .select('id, poll_id, option_text');
+
+      // Get user statistics
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role, class_name, created_at');
+
+      // Get idea statistics
+      const { data: ideas } = await supabaseAdmin
+        .from('ideas')
+        .select('id, status, created_at');
+
+      // Get announcement statistics
+      const { data: announcements } = await supabaseAdmin
+        .from('announcements')
+        .select('id, created_at');
+
+      const { data: announcementComments } = await supabaseAdmin
+        .from('announcement_comments')
+        .select('id, status, created_at');
+
+      // Get event statistics
+      const { data: events } = await supabaseAdmin
+        .from('events')
+        .select('id, name, is_active, created_at');
+
+      const { data: eventApplications } = await supabaseAdmin
+        .from('event_applications')
+        .select('id, event_id, created_at');
+
+      // Calculate poll participation metrics
+      const totalPolls = polls?.length || 0;
+      const activePolls = polls?.filter(p => p.is_open)?.length || 0;
+      const closedPolls = polls?.filter(p => !p.is_open)?.length || 0;
+      const totalVotes = pollVotes?.length || 0;
+      
+      // Unique voters
+      const uniqueVoters = new Set(pollVotes?.map(v => v.user_id)).size;
+      
+      // Total possible voters (all users who could vote)
+      const totalUsers = profiles?.length || 0;
+      const studentCount = profiles?.filter(p => p.role === 'student')?.length || 0;
+      const teacherCount = profiles?.filter(p => p.role === 'teacher')?.length || 0;
+      const adminCount = profiles?.filter(p => p.role === 'admin')?.length || 0;
+      
+      // Participation rate
+      const participationRate = totalUsers > 0 ? (uniqueVoters / totalUsers) * 100 : 0;
+
+      // Poll-specific breakdown
+      const pollBreakdown = (polls || []).map(poll => {
+        const options = pollOptions?.filter(o => o.poll_id === poll.id) || [];
+        const votes = pollVotes?.filter(v => v.poll_id === poll.id) || [];
+        const uniquePollVoters = new Set(votes.map(v => v.user_id)).size;
+        
+        const optionBreakdown = options.map(opt => ({
+          id: opt.id,
+          text: opt.option_text,
+          votes: votes.filter(v => v.option_id === opt.id).length,
+        }));
+
+        return {
+          id: poll.id,
+          question: poll.question,
+          isOpen: poll.is_open,
+          resultsPublished: poll.results_published,
+          createdAt: poll.created_at,
+          totalVotes: votes.length,
+          uniqueVoters: uniquePollVoters,
+          participationRate: totalUsers > 0 ? (uniquePollVoters / totalUsers) * 100 : 0,
+          options: optionBreakdown,
+        };
+      });
+
+      // Ideas statistics
+      const totalIdeas = ideas?.length || 0;
+      const approvedIdeas = ideas?.filter(i => i.status === 'approved')?.length || 0;
+      const pendingIdeas = ideas?.filter(i => i.status === 'pending')?.length || 0;
+      const rejectedIdeas = ideas?.filter(i => i.status === 'rejected')?.length || 0;
+
+      // Engagement metrics
+      const totalAnnouncements = announcements?.length || 0;
+      const totalComments = announcementComments?.length || 0;
+      const approvedComments = announcementComments?.filter(c => c.status === 'approved')?.length || 0;
+
+      // Event metrics
+      const totalEvents = events?.length || 0;
+      const activeEvents = events?.filter(e => e.is_active)?.length || 0;
+      const totalApplications = eventApplications?.length || 0;
+
+      // Class distribution
+      const classDistribution: Record<string, number> = {};
+      profiles?.forEach(p => {
+        if (p.class_name) {
+          classDistribution[p.class_name] = (classDistribution[p.class_name] || 0) + 1;
+        }
+      });
+
+      // Votes by class
+      const votesByClass: Record<string, number> = {};
+      for (const vote of pollVotes || []) {
+        const voterProfile = profiles?.find(p => p.id === vote.user_id);
+        if (voterProfile?.class_name) {
+          votesByClass[voterProfile.class_name] = (votesByClass[voterProfile.class_name] || 0) + 1;
+        }
+      }
+
+      res.json({
+        overview: {
+          totalUsers,
+          studentCount,
+          teacherCount,
+          adminCount,
+          totalPolls,
+          activePolls,
+          closedPolls,
+          totalVotes,
+          uniqueVoters,
+          participationRate: Math.round(participationRate * 10) / 10,
+          totalIdeas,
+          approvedIdeas,
+          pendingIdeas,
+          rejectedIdeas,
+          totalAnnouncements,
+          totalComments,
+          approvedComments,
+          totalEvents,
+          activeEvents,
+          totalApplications,
+        },
+        polls: pollBreakdown,
+        classDistribution,
+        votesByClass,
+      });
+    } catch (error: any) {
+      console.error('Error fetching analytics:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

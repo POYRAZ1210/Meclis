@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus, Calendar, Edit2, ClipboardList } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus, Calendar, Edit2, ClipboardList, TrendingUp, PieChart } from "lucide-react";
 import { getAdminProfiles, updateProfile, getClasses, createClass, deleteClass, type SchoolClass } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
 import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
@@ -27,6 +27,8 @@ import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
 import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture, suspendUser, activateUser, resetUserProfilePicture, deleteComment, clearIdeaLikes } from "@/lib/api/admin";
 import { getAdminEvents, createEvent, updateEvent, deleteEvent, getEventApplications, type EventApplicationWithProfile } from "@/lib/api/events";
+import { getAnalytics, type AnalyticsData } from "@/lib/api/analytics";
+import { Progress } from "@/components/ui/progress";
 import type { Event, FormField } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -93,6 +95,12 @@ export default function Admin() {
   const [editFieldType, setEditFieldType] = useState<'text' | 'textarea' | 'select'>('text');
   const [editFieldRequired, setEditFieldRequired] = useState(false);
   const [editFieldOptions, setEditFieldOptions] = useState("");
+
+  // Analytics
+  const { data: analytics, isLoading: loadingAnalytics } = useQuery({
+    queryKey: ["/api/admin/analytics"],
+    queryFn: getAnalytics,
+  });
 
   // Classes
   const { data: classes, isLoading: loadingClasses } = useQuery({
@@ -590,6 +598,10 @@ export default function Admin() {
           <TabsTrigger value="events" data-testid="tab-events">
             <Calendar className="h-4 w-4 mr-2" />
             Etkinlikler
+          </TabsTrigger>
+          <TabsTrigger value="analytics" data-testid="tab-analytics">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Analitik
           </TabsTrigger>
         </TabsList>
 
@@ -1600,6 +1612,246 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <div className="space-y-6">
+            {loadingAnalytics ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : analytics ? (
+              <>
+                {/* Overview Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Kullanıcı</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-total-users">{analytics.overview.totalUsers}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analytics.overview.studentCount} Öğrenci, {analytics.overview.teacherCount} Öğretmen, {analytics.overview.adminCount} Admin
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Oylama</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-total-polls">{analytics.overview.totalPolls}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analytics.overview.activePolls} Aktif, {analytics.overview.closedPolls} Kapalı
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Oy</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-total-votes">{analytics.overview.totalVotes}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analytics.overview.uniqueVoters} Benzersiz Oy Veren
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Katılım Oranı</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-primary" data-testid="text-participation-rate">
+                        %{analytics.overview.participationRate}
+                      </div>
+                      <Progress value={analytics.overview.participationRate} className="mt-2 h-2" />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Engagement Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Fikirler</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.overview.totalIdeas}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="text-green-600">{analytics.overview.approvedIdeas} onaylı</span>,{' '}
+                        <span className="text-yellow-600">{analytics.overview.pendingIdeas} bekleyen</span>,{' '}
+                        <span className="text-red-600">{analytics.overview.rejectedIdeas} reddedilen</span>
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Duyurular</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.overview.totalAnnouncements}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analytics.overview.approvedComments} onaylı yorum
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Etkinlikler</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.overview.totalEvents}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analytics.overview.activeEvents} aktif, {analytics.overview.totalApplications} başvuru
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Yorum</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.overview.totalComments}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Duyuru yorumları
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Poll Breakdown */}
+                {analytics.polls.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <PieChart className="h-5 w-5" />
+                        Oylama Detayları
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {analytics.polls.map((poll) => (
+                          <div key={poll.id} className="border rounded-lg p-4" data-testid={`poll-analytics-${poll.id}`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium">{poll.question}</h4>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={poll.isOpen ? 'default' : 'secondary'}>
+                                  {poll.isOpen ? 'Aktif' : 'Kapalı'}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  {poll.totalVotes} oy, %{Math.round(poll.participationRate)} katılım
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {poll.options.map((option) => {
+                                const percentage = poll.totalVotes > 0 
+                                  ? Math.round((option.votes / poll.totalVotes) * 100) 
+                                  : 0;
+                                return (
+                                  <div key={option.id} className="space-y-1">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span>{option.text}</span>
+                                      <span className="text-muted-foreground">{option.votes} oy (%{percentage})</span>
+                                    </div>
+                                    <Progress value={percentage} className="h-2" />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Class Distribution */}
+                {Object.keys(analytics.classDistribution).length > 0 && (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          Sınıf Dağılımı
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {Object.entries(analytics.classDistribution)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([className, count]) => {
+                              const percentage = analytics.overview.totalUsers > 0 
+                                ? Math.round((count / analytics.overview.totalUsers) * 100) 
+                                : 0;
+                              return (
+                                <div key={className} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="font-medium">{className}</span>
+                                    <span className="text-muted-foreground">{count} öğrenci (%{percentage})</span>
+                                  </div>
+                                  <Progress value={percentage} className="h-2" />
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5" />
+                          Sınıf Bazlı Oy Dağılımı
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {Object.keys(analytics.votesByClass).length > 0 ? (
+                          <div className="space-y-3">
+                            {Object.entries(analytics.votesByClass)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([className, voteCount]) => {
+                                const maxVotes = Math.max(...Object.values(analytics.votesByClass));
+                                const percentage = maxVotes > 0 ? Math.round((voteCount / maxVotes) * 100) : 0;
+                                return (
+                                  <div key={className} className="space-y-1">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="font-medium">{className}</span>
+                                      <span className="text-muted-foreground">{voteCount} oy</span>
+                                    </div>
+                                    <Progress value={percentage} className="h-2" />
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-8">
+                            Henüz sınıf bazlı oy verisi yok.
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-12">
+                  <p className="text-center text-muted-foreground">
+                    Analiz verileri yüklenirken bir hata oluştu.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
       </Tabs>
