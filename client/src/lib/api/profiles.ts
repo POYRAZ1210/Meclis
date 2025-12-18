@@ -9,56 +9,74 @@ export interface Profile {
   class_name: string | null;
   student_no: string | null;
   gender: string | null;
+  profile_picture_url?: string | null;
   created_at: string;
 }
 
-export async function getProfiles(className?: string) {
-  let query = supabase
-    .from('profiles')
-    .select('*')
-    .order('class_name', { ascending: true })
-    .order('student_no', { ascending: true });
+// Helper to get auth headers
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${session.access_token}`,
+  };
+}
 
+export async function getProfiles(className?: string): Promise<Profile[]> {
+  const headers = await getAuthHeaders();
+  const params = new URLSearchParams();
   if (className && className !== 'Tümü') {
-    query = query.eq('class_name', className);
+    params.append('className', className);
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as Profile[];
+  
+  const url = `/api/profiles${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Profiller yüklenirken hata oluştu');
+  }
+  
+  return res.json();
 }
 
-export async function getProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (error) throw error;
-  return data as Profile;
+export async function getProfile(): Promise<Profile> {
+  const headers = await getAuthHeaders();
+  const res = await fetch('/api/profiles/me', { headers, credentials: 'include' });
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Profil yüklenirken hata oluştu');
+  }
+  
+  return res.json();
 }
 
-export async function updateProfile(userId: string, updates: Partial<Profile>) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('user_id', userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export async function updateProfile(updates: Partial<Profile>): Promise<Profile> {
+  const headers = await getAuthHeaders();
+  const res = await fetch('/api/profiles/me', {
+    method: 'PATCH',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(updates),
+  });
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Profil güncellenirken hata oluştu');
+  }
+  
+  return res.json();
 }
 
-export async function getClassNames() {
-  // Get classes from the classes table
+export async function getClassNames(): Promise<string[]> {
   const res = await fetch('/api/classes');
   if (!res.ok) {
     throw new Error('Sınıflar yüklenirken hata oluştu');
   }
   const classes = await res.json();
-  return classes.map((c: { name: string }) => c.name) as string[];
+  return classes.map((c: { name: string }) => c.name);
 }
 
 export interface SchoolClass {
@@ -76,15 +94,10 @@ export async function getClasses(): Promise<SchoolClass[]> {
 }
 
 export async function createClass(name: string): Promise<SchoolClass> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Giriş yapmanız gerekiyor');
-
+  const headers = await getAuthHeaders();
   const res = await fetch('/api/classes', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    },
+    headers,
     body: JSON.stringify({ name }),
   });
 
@@ -96,14 +109,10 @@ export async function createClass(name: string): Promise<SchoolClass> {
 }
 
 export async function deleteClass(id: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Giriş yapmanız gerekiyor');
-
+  const headers = await getAuthHeaders();
   const res = await fetch(`/api/classes/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    },
+    headers,
   });
 
   if (!res.ok) {
@@ -112,29 +121,20 @@ export async function deleteClass(id: string): Promise<void> {
   }
 }
 
-export async function getAdminProfiles(className?: string) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Giriş yapmanız gerekiyor');
-
-  // Build query string with optional className filter
+export async function getAdminProfiles(className?: string): Promise<Profile[]> {
+  const headers = await getAuthHeaders();
   const params = new URLSearchParams();
   if (className && className !== 'Tümü') {
     params.append('className', className);
   }
   
   const url = `/api/admin/profiles${params.toString() ? `?${params.toString()}` : ''}`;
-
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    },
-    credentials: 'include',
-  });
+  const res = await fetch(url, { headers, credentials: 'include' });
 
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || 'Profiller yüklenirken hata oluştu');
   }
 
-  return res.json() as Promise<Profile[]>;
+  return res.json();
 }

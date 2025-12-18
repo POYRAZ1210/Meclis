@@ -23,7 +23,7 @@ import {
 import PollCard from "@/components/PollCard";
 import EmptyState from "@/components/EmptyState";
 import { BarChart3, Plus, Loader2, X } from "lucide-react";
-import { getPolls, getPollVotes, getUserVote, votePoll, createPoll, closePoll, type Poll } from "@/lib/api/polls";
+import { getPolls, getUserVote, votePoll, createPoll, type Poll } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -115,23 +115,6 @@ export default function Polls() {
     },
   });
 
-  const closeMutation = useMutation({
-    mutationFn: (pollId: string) => closePoll(pollId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
-      toast({
-        title: "Başarılı",
-        description: "Oylama kapatıldı",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Oylama kapatılırken bir hata oluştu",
-      });
-    },
-  });
 
   const onSubmit = (data: PollFormValues) => {
     createMutation.mutate(data);
@@ -165,9 +148,6 @@ export default function Polls() {
               key={poll.id}
               poll={poll}
               onVote={(optionId) => voteMutation.mutate({ pollId: poll.id, optionId })}
-              onClose={() => closeMutation.mutate(poll.id)}
-              isAdmin={isAdmin}
-              isClosing={closeMutation.isPending}
             />
           ))}
         </div>
@@ -282,64 +262,34 @@ export default function Polls() {
 
 function PollDisplay({ 
   poll, 
-  onVote, 
-  onClose,
-  isAdmin,
-  isClosing
+  onVote
 }: { 
   poll: Poll; 
   onVote: (optionId: string) => void;
-  onClose: () => void;
-  isAdmin: boolean;
-  isClosing: boolean;
 }) {
-  const { data: votes } = useQuery({
-    queryKey: ["/api/polls", poll.id, "votes"],
-    queryFn: () => getPollVotes(poll.id),
-  });
-
   const { data: userVote } = useQuery({
     queryKey: ["/api/polls", poll.id, "user-vote"],
     queryFn: () => getUserVote(poll.id),
   });
 
-  const voteCounts = votes?.reduce((acc: Record<string, number>, vote) => {
-    acc[vote.option_id] = (acc[vote.option_id] || 0) + 1;
-    return acc;
-  }, {}) || {};
-
   const optionsWithVotes = poll.options?.map((opt) => ({
     id: opt.id,
     text: opt.option_text,
-    votes: voteCounts[opt.id] || 0,
+    votes: opt.vote_count || 0,
   })) || [];
 
-  const totalVotes = votes?.length || 0;
+  const totalVotes = optionsWithVotes.reduce((sum, opt) => sum + opt.votes, 0);
 
   return (
-    <div className="space-y-3">
-      <PollCard
-        question={poll.question}
-        options={optionsWithVotes}
-        totalVotes={totalVotes}
-        hasVoted={!!userVote}
-        userVote={userVote?.option_id}
-        isOpen={poll.is_open}
-        resultsPublished={poll.results_published}
-        onVote={onVote}
-      />
-      {isAdmin && poll.is_open && (
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={isClosing}
-          className="w-full"
-          data-testid={`button-close-poll-${poll.id}`}
-        >
-          {isClosing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Oylamayı Kapat
-        </Button>
-      )}
-    </div>
+    <PollCard
+      question={poll.question}
+      options={optionsWithVotes}
+      totalVotes={totalVotes}
+      hasVoted={!!userVote}
+      userVote={userVote?.option_id}
+      isOpen={poll.is_open}
+      resultsPublished={poll.results_published}
+      onVote={onVote}
+    />
   );
 }

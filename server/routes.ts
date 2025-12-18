@@ -2794,7 +2794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (data || []).map(async (app: any) => {
           let email = '';
           if (app.profile?.user_id) {
-            const { data: userData } = await supabaseAdmin.auth.admin.getUserById(app.profile.user_id);
+            const { data: userData } = await supabaseAdmin!.auth.admin.getUserById(app.profile.user_id);
             email = userData?.user?.email || '';
           }
           return {
@@ -2968,6 +2968,318 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(data);
     } catch (error: any) {
       console.error('Error submitting application:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // SECURE PUBLIC API ENDPOINTS (Authenticated Users)
+  // These replace direct Supabase access from frontend
+  // ============================================
+
+  // GET /api/polls - Get all polls (authenticated users only)
+  app.get('/api/polls', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      // Get all polls with options
+      const { data: polls, error: pollsError } = await supabaseAdmin
+        .from('polls')
+        .select(`
+          *,
+          options:poll_options(
+            id,
+            poll_id,
+            option_text
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (pollsError) throw pollsError;
+
+      // Calculate vote counts for each option
+      const pollsWithVotes = await Promise.all(
+        polls.map(async (poll) => {
+          const optionsWithVotes = await Promise.all(
+            poll.options.map(async (option: any) => {
+              const { count } = await supabaseAdmin!
+                .from('poll_votes')
+                .select('*', { count: 'exact', head: true })
+                .eq('option_id', option.id);
+
+              return {
+                ...option,
+                vote_count: count || 0,
+              };
+            })
+          );
+
+          return {
+            ...poll,
+            options: optionsWithVotes,
+          };
+        })
+      );
+
+      res.json(pollsWithVotes);
+    } catch (error: any) {
+      console.error('Error fetching polls:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // GET /api/polls/:id - Get single poll (authenticated users only)
+  app.get('/api/polls/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+
+      const { data: poll, error } = await supabaseAdmin
+        .from('polls')
+        .select(`
+          *,
+          options:poll_options(
+            id,
+            poll_id,
+            option_text
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      // Calculate vote counts for each option
+      const optionsWithVotes = await Promise.all(
+        poll.options.map(async (option: any) => {
+          const { count } = await supabaseAdmin!
+            .from('poll_votes')
+            .select('*', { count: 'exact', head: true })
+            .eq('option_id', option.id);
+
+          return {
+            ...option,
+            vote_count: count || 0,
+          };
+        })
+      );
+
+      res.json({
+        ...poll,
+        options: optionsWithVotes,
+      });
+    } catch (error: any) {
+      console.error('Error fetching poll:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // GET /api/polls/:id/my-vote - Get user's vote for a poll
+  app.get('/api/polls/:id/my-vote', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id } = req.params;
+      const userId = (req as any).userId;
+
+      const { data, error } = await supabaseAdmin
+        .from('poll_votes')
+        .select('*')
+        .eq('poll_id', id)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching user vote:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // POST /api/polls/:id/vote - Vote on a poll (authenticated users only)
+  app.post('/api/polls/:id/vote', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { id: pollId } = req.params;
+      const { option_id: optionId } = req.body;
+      const userId = (req as any).userId;
+
+      if (!optionId) {
+        return res.status(400).json({ error: 'option_id gerekli' });
+      }
+
+      // Check if poll exists and is open
+      const { data: poll, error: pollError } = await supabaseAdmin
+        .from('polls')
+        .select('is_open, results_published')
+        .eq('id', pollId)
+        .single();
+
+      if (pollError) throw pollError;
+
+      if (!poll.is_open) {
+        return res.status(400).json({ error: 'Bu oylama kapatılmıştır' });
+      }
+
+      if (poll.results_published) {
+        return res.status(400).json({ error: 'Sonuçlar yayınlandı, artık oy veremezsiniz' });
+      }
+
+      // Verify option belongs to this poll
+      const { data: option, error: optionError } = await supabaseAdmin
+        .from('poll_options')
+        .select('id')
+        .eq('id', optionId)
+        .eq('poll_id', pollId)
+        .single();
+
+      if (optionError || !option) {
+        return res.status(400).json({ error: 'Geçersiz seçenek' });
+      }
+
+      // Upsert vote (allows changing vote)
+      const { data, error } = await supabaseAdmin
+        .from('poll_votes')
+        .upsert(
+          { poll_id: pollId, option_id: optionId, user_id: userId },
+          { onConflict: 'poll_id,user_id' }
+        )
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error voting on poll:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // GET /api/profiles - Get profiles (authenticated, role-based filtering)
+  app.get('/api/profiles', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      const { className } = req.query;
+
+      // Get user's role
+      const role = await getUserRole(userId);
+
+      let query = supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name, class_name, student_no, role, gender, profile_picture_url');
+
+      // Role-based filtering: students can only see limited info
+      // Teachers and admins can see all profiles
+      if (role === 'student') {
+        // Students can only see their own class
+        const profileId = await getProfileId(userId);
+        if (profileId) {
+          const { data: ownProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('class_name')
+            .eq('id', profileId)
+            .single();
+          
+          if (ownProfile?.class_name) {
+            query = query.eq('class_name', ownProfile.class_name);
+          }
+        }
+      } else if (className && className !== 'Tümü') {
+        // Admins/teachers can filter by class
+        query = query.eq('class_name', className);
+      }
+
+      query = query
+        .order('class_name', { ascending: true })
+        .order('student_no', { ascending: true });
+
+      const { data: profiles, error } = await query;
+
+      if (error) throw error;
+
+      res.json(profiles);
+    } catch (error: any) {
+      console.error('Error fetching profiles:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // GET /api/profiles/me - Get current user's profile
+  app.get('/api/profiles/me', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching own profile:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // PATCH /api/profiles/me - Update current user's profile (only own profile)
+  app.patch('/api/profiles/me', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+      
+      // Validate input - only allow certain fields to be updated
+      const allowedFields = ['first_name', 'last_name', 'gender'];
+      const updates: Record<string, any> = {};
+      
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'Güncellenecek alan bulunamadı' });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
       res.status(400).json({ error: error.message });
     }
   });

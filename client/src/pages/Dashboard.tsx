@@ -11,7 +11,7 @@ import { Link, useLocation } from "wouter";
 import { getAnnouncements, getAnnouncementComments, addAnnouncementComment, editAnnouncementComment, deleteAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { getPolls, getPollVotes, getUserVote, votePoll } from "@/lib/api/polls";
+import { getPolls, getUserVote, votePoll } from "@/lib/api/polls";
 import { getIdeas } from "@/lib/api/ideas";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -557,28 +557,18 @@ export default function Dashboard() {
 }
 
 function PollDisplay({ poll, onVote }: { poll: any; onVote: any }) {
-  const { data: votes } = useQuery({
-    queryKey: ["/api/polls", poll.id, "votes"],
-    queryFn: () => getPollVotes(poll.id),
-  });
-
   const { data: userVote } = useQuery({
     queryKey: ["/api/polls", poll.id, "user-vote"],
     queryFn: () => getUserVote(poll.id),
   });
 
-  const voteCounts = votes?.reduce((acc: Record<string, number>, vote) => {
-    acc[vote.option_id] = (acc[vote.option_id] || 0) + 1;
-    return acc;
-  }, {}) || {};
-
   const optionsWithVotes = poll.options?.map((opt: any) => ({
     id: opt.id,
     text: opt.option_text,
-    votes: voteCounts[opt.id] || 0,
+    votes: opt.vote_count || 0,
   })) || [];
 
-  const totalVotes = votes?.length || 0;
+  const totalVotes = optionsWithVotes.reduce((sum: number, opt: any) => sum + opt.votes, 0);
 
   return (
     <PollCard
