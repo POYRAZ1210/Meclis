@@ -35,14 +35,14 @@ export default function AnnouncementCard({
 
   return (
     <Card 
-      className="hover-elevate transition-all cursor-pointer" 
+      className="card-hover-lift cursor-pointer group" 
       data-testid="card-announcement"
       onClick={onReadMore}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-            <Bell className="h-5 w-5 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <Bell className="h-5 w-5 text-primary icon-hover-bounce" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg leading-tight mb-1">{title}</h3>

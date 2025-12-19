@@ -38,15 +38,15 @@ export default function IdeaCard({
 
   return (
     <Card 
-      className="hover-elevate transition-all cursor-pointer" 
+      className="card-hover-lift cursor-pointer group" 
       data-testid="card-idea"
       onClick={handleClick}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-              <Lightbulb className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Lightbulb className="h-5 w-5 text-primary group-hover:animate-pulse transition-transform" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-lg leading-tight mb-2">{title}</h3>

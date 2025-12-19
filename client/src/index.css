@@ -545,3 +545,332 @@
   transition-duration: 0.2s;
   transition-timing-function: ease;
 }
+
+/* =========================================
+   INTERACTIVE HOVER ANIMATIONS
+   ========================================= */
+
+/* Icon hover animations */
+.icon-hover-spin {
+  transition: transform 0.3s ease;
+}
+.icon-hover-spin:hover {
+  transform: rotate(180deg);
+}
+
+.icon-hover-bounce {
+  transition: transform 0.2s ease;
+}
+.icon-hover-bounce:hover {
+  animation: bounce 0.5s ease;
+}
+
+.icon-hover-shake {
+  transition: transform 0.2s ease;
+}
+.icon-hover-shake:hover {
+  animation: shake 0.4s ease;
+}
+
+.icon-hover-pulse {
+  transition: transform 0.2s ease;
+}
+.icon-hover-pulse:hover {
+  animation: pulse 0.6s ease;
+}
+
+/* Card interactive effects */
+.card-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+.dark .card-hover-lift:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.card-hover-scale {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card-hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.card-hover-tilt {
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+.card-hover-tilt:hover {
+  transform: rotateX(-2deg) rotateY(2deg) translateY(-4px);
+}
+
+.card-hover-glow {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.card-hover-glow:hover {
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.3);
+  transform: translateY(-4px);
+}
+
+/* Button interactive effects */
+.btn-hover-scale {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-hover-scale:hover {
+  transform: scale(1.05);
+}
+.btn-hover-scale:active {
+  transform: scale(0.98);
+}
+
+.btn-hover-glow {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.btn-hover-glow:hover {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-hover-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.btn-hover-ripple::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s ease, opacity 0.3s ease;
+}
+.btn-hover-ripple:hover::after {
+  transform: scale(2);
+  opacity: 1;
+}
+
+/* List item hover effects */
+.list-item-hover {
+  transition: transform 0.2s ease, background-color 0.2s ease, padding-left 0.2s ease;
+}
+.list-item-hover:hover {
+  transform: translateX(8px);
+  background-color: hsl(var(--accent) / 0.5);
+}
+
+.list-item-hover-border {
+  position: relative;
+  transition: padding-left 0.2s ease;
+}
+.list-item-hover-border::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 60%;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+  transition: transform 0.2s ease;
+}
+.list-item-hover-border:hover {
+  padding-left: 12px;
+}
+.list-item-hover-border:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* Avatar/image hover effects */
+.avatar-hover-pop {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.avatar-hover-pop:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-hover-ring {
+  transition: box-shadow 0.3s ease;
+}
+.avatar-hover-ring:hover {
+  box-shadow: 0 0 0 4px hsl(var(--primary)), 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Link hover effects */
+.link-hover-underline {
+  position: relative;
+}
+.link-hover-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: hsl(var(--primary));
+  transition: width 0.3s ease;
+}
+.link-hover-underline:hover::after {
+  width: 100%;
+}
+
+.link-hover-slide {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.link-hover-slide:hover {
+  transform: translateX(4px);
+  color: hsl(var(--primary));
+}
+
+/* Nav item hover effects */
+.nav-hover-bg {
+  position: relative;
+  transition: color 0.2s ease;
+}
+.nav-hover-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--primary) / 0.1);
+  border-radius: var(--radius);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+.nav-hover-bg:hover::before {
+  transform: scaleX(1);
+}
+
+/* Badge/tag hover effects */
+.badge-hover-pop {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.badge-hover-pop:hover {
+  transform: scale(1.1);
+}
+
+/* Input focus effects */
+.input-focus-glow:focus {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2), 0 0 20px hsl(var(--primary) / 0.1);
+}
+
+/* Floating action button */
+.fab-hover {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.fab-hover:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Interactive table rows */
+.table-row-hover {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.table-row-hover:hover {
+  background-color: hsl(var(--accent) / 0.3);
+  transform: scale(1.01);
+}
+
+/* Tab hover effect */
+.tab-hover-slide {
+  position: relative;
+}
+.tab-hover-slide::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: hsl(var(--primary));
+  transition: width 0.3s ease, left 0.3s ease;
+}
+.tab-hover-slide:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* Keyframe animations */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-6px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-3px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Framer theme - Enhanced interactive effects */
+.theme-framer .card-hover-lift:hover {
+  box-shadow: 0 20px 50px rgba(99, 102, 241, 0.2);
+}
+
+.theme-framer.dark .card-hover-lift:hover {
+  box-shadow: 0 20px 50px rgba(139, 92, 246, 0.25);
+}
+
+.theme-framer .btn-hover-glow:hover {
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.6), 0 0 60px hsl(var(--primary) / 0.3);
+}
+
+/* Framer specific - Cards have built-in hover lift */
+.theme-framer [data-slot="card"] {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.theme-framer [data-slot="card"]:hover {
+  transform: translateY(-6px) scale(1.01);
+}
+
+/* Framer specific - Buttons have enhanced glow */
+.theme-framer [data-slot="button"] {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, opacity 0.2s ease;
+}
+
+.theme-framer [data-slot="button"]:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.theme-framer [data-slot="button"]:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Framer specific - Sidebar items */
+.theme-framer [data-slot="sidebar-menu-button"] {
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-framer [data-slot="sidebar-menu-button"]:hover {
+  transform: translateX(4px);
+}

@@ -211,7 +211,7 @@ export default function Profile() {
               </p>
             </div>
             <div className="flex items-center gap-6">
-              <Avatar className="h-24 w-24">
+              <Avatar className="h-24 w-24 avatar-hover-ring cursor-pointer">
                 <AvatarImage src={profile?.profile_picture_url || undefined} alt={profile?.first_name || undefined} />
                 <AvatarFallback>{profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -301,20 +301,20 @@ export default function Profile() {
                 onValueChange={(value) => setDesignTheme(value as DesignTheme)}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-3"
               >
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover-elevate" onClick={() => setDesignTheme('maya')}>
+                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setDesignTheme('maya')}>
                   <RadioGroupItem value="maya" id="theme-maya" data-testid="radio-theme-maya" />
                   <Label htmlFor="theme-maya" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <GraduationCap className="h-5 w-5 text-primary" />
+                    <GraduationCap className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
                     <div>
                       <div className="font-medium">Maya Klasik</div>
                       <div className="text-xs text-muted-foreground">Mor ve beyaz okul teması</div>
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover-elevate" onClick={() => setDesignTheme('framer')}>
+                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setDesignTheme('framer')}>
                   <RadioGroupItem value="framer" id="theme-framer" data-testid="radio-theme-framer" />
                   <Label htmlFor="theme-framer" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Sparkles className="h-5 w-5 text-primary" />
+                    <Sparkles className="h-5 w-5 text-primary group-hover:rotate-12 group-hover:scale-110 transition-transform" />
                     <div>
                       <div className="font-medium">Modern</div>
                       <div className="text-xs text-muted-foreground">Cam efektli modern tasarım</div>
@@ -331,20 +331,20 @@ export default function Profile() {
                 onValueChange={(value) => setColorMode(value as ColorMode)}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-3"
               >
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover-elevate" onClick={() => setColorMode('light')}>
+                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setColorMode('light')}>
                   <RadioGroupItem value="light" id="color-light" data-testid="radio-color-light" />
                   <Label htmlFor="color-light" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Sun className="h-5 w-5 text-yellow-500" />
+                    <Sun className="h-5 w-5 text-yellow-500 group-hover:rotate-45 group-hover:scale-110 transition-transform" />
                     <div>
                       <div className="font-medium">Açık Mod</div>
                       <div className="text-xs text-muted-foreground">Beyaz arka plan</div>
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover-elevate" onClick={() => setColorMode('dark')}>
+                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setColorMode('dark')}>
                   <RadioGroupItem value="dark" id="color-dark" data-testid="radio-color-dark" />
                   <Label htmlFor="color-dark" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Moon className="h-5 w-5 text-blue-400" />
+                    <Moon className="h-5 w-5 text-blue-400 group-hover:-rotate-12 group-hover:scale-110 transition-transform" />
                     <div>
                       <div className="font-medium">Koyu Mod</div>
                       <div className="text-xs text-muted-foreground">Koyu arka plan</div>
