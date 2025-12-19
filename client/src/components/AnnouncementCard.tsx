@@ -60,7 +60,7 @@ export default function AnnouncementCard({
         </div>
       </CardHeader>
       <CardContent className="pb-3">
-        <p className="text-sm text-muted-foreground leading-relaxed">{truncatedContent}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{truncatedContent}</p>
         {attachmentUrl && (attachmentType === 'pdf' || attachmentType === 'document') && (
           <a 
             href={attachmentUrl} 

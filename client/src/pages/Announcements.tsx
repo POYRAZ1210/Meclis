@@ -261,7 +261,7 @@ export default function Announcements() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
             <div className="py-4">
-              <p className="text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedAnnouncement?.content}</p>
               
               {/* Attachment Download */}
               {selectedAnnouncement?.attachment_url && 
