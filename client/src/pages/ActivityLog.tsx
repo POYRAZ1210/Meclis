@@ -27,6 +27,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/tr";
 import type { ActionLog as ActionLogType, ActionType } from "@shared/schema";
+import { fetchActivityLog } from "@/lib/api/activity";
 
 dayjs.extend(relativeTime);
 dayjs.locale("tr");
@@ -106,6 +107,7 @@ export default function ActivityLog() {
 
   const { data: activities, isLoading, error } = useQuery<ActionLogType[]>({
     queryKey: ['/api/activity-log'],
+    queryFn: fetchActivityLog,
     enabled: !!user,
   });
 
