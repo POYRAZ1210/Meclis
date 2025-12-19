@@ -16,6 +16,7 @@ import Ideas from "@/pages/Ideas";
 import Classes from "@/pages/Classes";
 import Admin from "@/pages/Admin";
 import Profile from "@/pages/Profile";
+import ActivityLog from "@/pages/ActivityLog";
 import Login from "@/pages/Login";
 import AddEmail from "@/pages/AddEmail";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -117,6 +118,11 @@ function Router() {
         <Route path="/profil">
           <ProtectedRoute requireAuth={true}>
             <Profile />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/aktiviteler">
+          <ProtectedRoute requireAuth={true}>
+            <ActivityLog />
           </ProtectedRoute>
         </Route>
         <Route path="/kullanim-sartlari" component={KullanimSartlari} />

@@ -132,6 +132,31 @@ async function getProfileId(userId: string): Promise<string | null> {
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ============================================
+  // HELPER: LOG USER ACTIVITY
+  // ============================================
+  async function logActivity(
+    userId: string, 
+    actionType: string, 
+    targetId?: string, 
+    targetType?: string, 
+    details?: string
+  ) {
+    try {
+      if (!supabaseAdmin) return;
+      
+      await supabaseAdmin.from('action_logs').insert({
+        user_id: userId,
+        action_type: actionType,
+        target_id: targetId,
+        target_type: targetType,
+        details: details,
+      });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
+  }
+
+  // ============================================
   // ADMIN ROUTES
   // ============================================
   
@@ -331,6 +356,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .single();
 
       if (error) throw error;
+
+      // Log announcement comment activity
+      await logActivity(profile.id, 'ANNOUNCEMENT_COMMENT_CREATED', id, 'announcement', 'Duyuruya yorum yapıldı');
 
       // If this is a reply, create notification for the parent comment author
       if (parent_id) {
@@ -1695,6 +1723,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .eq('user_id', userId)
         .maybeSingle();
 
+      // Get profile ID for logging
+      const profileId = await getProfileId(userId);
+
       if (existingLike) {
         // Unlike
         const { error } = await supabaseAdmin
@@ -1704,6 +1735,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .eq('user_id', userId);
 
         if (error) throw error;
+
+        // Log unlike activity
+        if (profileId) {
+          await logActivity(profileId, 'LIKE_REMOVED', id, 'idea', 'Beğeni kaldırıldı');
+        }
 
         res.json({ liked: false });
       } else {
@@ -1718,6 +1754,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
         if (error) throw error;
+
+        // Log like activity
+        if (profileId) {
+          await logActivity(profileId, 'LIKE_ADDED', id, 'idea', 'Fikir beğenildi');
+        }
 
         res.json({ liked: true });
       }
@@ -1771,6 +1812,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .single();
 
       if (error) throw error;
+
+      // Log comment creation activity
+      await logActivity(profile.id, 'COMMENT_CREATED', id, 'idea', 'Fikre yorum yapıldı');
 
       // If this is a reply, create notification for the parent comment author
       if (parent_id) {
@@ -3149,6 +3193,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Geçersiz seçenek' });
       }
 
+      // Check if user has existing vote
+      const { data: existingVote } = await supabaseAdmin
+        .from('poll_votes')
+        .select('option_id')
+        .eq('poll_id', pollId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const isVoteChange = !!existingVote;
+
       // Upsert vote (allows changing vote)
       const { data, error } = await supabaseAdmin
         .from('poll_votes')
@@ -3160,6 +3214,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .single();
 
       if (error) throw error;
+
+      // Log the activity
+      const profileId = await getProfileId(userId);
+      if (profileId) {
+        await logActivity(
+          profileId, 
+          isVoteChange ? 'VOTE_CHANGED' : 'VOTE_CAST', 
+          pollId, 
+          'poll',
+          `Oy kullanıldı`
+        );
+      }
 
       res.json(data);
     } catch (error: any) {
@@ -3468,6 +3534,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Error fetching analytics:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // ACTIVITY LOGS
+  // ============================================
+
+  // Get current user's activity log
+  app.get("/api/activity-log", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Service unavailable" });
+      }
+      
+      // Get profile ID from user ID
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      const { data: logs, error } = await supabaseAdmin
+        .from('action_logs')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (error) throw error;
+      
+      // Get total count
+      const { count } = await supabaseAdmin
+        .from('action_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+      
+      res.json({
+        logs: logs || [],
+        total: count || 0,
+        limit,
+        offset,
+      });
+    } catch (error: any) {
+      console.error('Error fetching activity log:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all activity logs or specific user's logs
+  app.get("/api/admin/activity-logs", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const profileId = req.query.profileId as string;
+      const actionType = req.query.actionType as string;
+      
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Service unavailable" });
+      }
+      
+      let query = supabaseAdmin
+        .from('action_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (profileId) {
+        query = query.eq('user_id', profileId);
+      }
+      
+      if (actionType) {
+        query = query.eq('action_type', actionType);
+      }
+      
+      const { data: logs, error } = await query.range(offset, offset + limit - 1);
+      
+      if (error) throw error;
+      
+      // Get profiles for the logs
+      const userIds = Array.from(new Set((logs || []).map(log => log.user_id)));
+      
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name, class_name')
+        .in('id', userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      
+      const logsWithProfiles = (logs || []).map(log => ({
+        ...log,
+        profile: profileMap.get(log.user_id) || null,
+      }));
+      
+      // Get total count
+      let countQuery = supabaseAdmin
+        .from('action_logs')
+        .select('*', { count: 'exact', head: true });
+      
+      if (profileId) {
+        countQuery = countQuery.eq('user_id', profileId);
+      }
+      
+      if (actionType) {
+        countQuery = countQuery.eq('action_type', actionType);
+      }
+      
+      const { count } = await countQuery;
+      
+      res.json({
+        logs: logsWithProfiles,
+        total: count || 0,
+        limit,
+        offset,
+      });
+    } catch (error: any) {
+      console.error('Error fetching admin activity logs:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get activity log statistics
+  app.get("/api/admin/activity-stats", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Service unavailable" });
+      }
+      
+      // Get logs from last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: logs, error } = await supabaseAdmin
+        .from('action_logs')
+        .select('action_type, created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString());
+      
+      if (error) throw error;
+      
+      // Count by action type
+      const actionCounts: Record<string, number> = {};
+      (logs || []).forEach(log => {
+        actionCounts[log.action_type] = (actionCounts[log.action_type] || 0) + 1;
+      });
+      
+      // Count by day (last 7 days)
+      const dailyCounts: Record<string, number> = {};
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      (logs || []).filter(log => new Date(log.created_at) >= sevenDaysAgo).forEach(log => {
+        const date = new Date(log.created_at).toISOString().split('T')[0];
+        dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+      });
+      
+      res.json({
+        actionCounts,
+        dailyCounts,
+        totalLogs: logs?.length || 0,
+      });
+    } catch (error: any) {
+      console.error('Error fetching activity stats:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Log user login (called from frontend after successful auth)
+  app.post("/api/activity-log/login", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Service unavailable" });
+      }
+      
+      // Get profile ID
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      if (profile) {
+        await logActivity(profile.id, 'LOGIN', undefined, undefined, 'User logged in');
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error logging login:', error);
       res.status(500).json({ error: error.message });
     }
   });

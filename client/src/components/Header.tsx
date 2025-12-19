@@ -1,4 +1,4 @@
-import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User, ClipboardList } from "lucide-react";
+import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User, ClipboardList, History } from "lucide-react";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -128,6 +128,13 @@ export default function Header({
                       Profil Ayarları
                     </DropdownMenuItem>
                   </Link>
+                  <Link href="/aktiviteler">
+                    <DropdownMenuItem data-testid="link-activities">
+                      <History className="h-4 w-4 mr-2" />
+                      Aktivite Geçmişi
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} data-testid="button-logout">
                     <LogOut className="h-4 w-4 mr-2" />
                     Çıkış Yap

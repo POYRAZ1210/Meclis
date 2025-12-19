@@ -461,19 +461,37 @@ export interface ProfilePhotoLog {
 // ============================================
 // ACTION LOGS
 // ============================================
+export const ACTION_TYPES = [
+  'LOGIN',
+  'LOGOUT', 
+  'VOTE_CAST',
+  'VOTE_CHANGED',
+  'COMMENT_CREATED',
+  'COMMENT_EDITED',
+  'COMMENT_DELETED',
+  'ANNOUNCEMENT_COMMENT_CREATED',
+  'ANNOUNCEMENT_COMMENT_EDITED',
+  'ANNOUNCEMENT_COMMENT_DELETED',
+  'LIKE_ADDED',
+  'LIKE_REMOVED',
+  'IDEA_CREATED',
+  'IDEA_DELETED',
+  'PROFILE_UPDATED',
+  'PROFILE_PHOTO_UPLOADED',
+  'PROFILE_PHOTO_RESET',
+  'PASSWORD_CHANGED',
+  'EMAIL_CHANGED',
+  'EVENT_APPLICATION_SUBMITTED',
+  'USER_SUSPENDED',
+  'USER_ACTIVATED',
+  'TERMS_ACCEPTED',
+] as const;
+
+export type ActionType = typeof ACTION_TYPES[number];
+
 export const insertActionLogSchema = z.object({
   user_id: z.string().uuid(),
-  action_type: z.enum([
-    'COMMENT_CREATED', 
-    'COMMENT_DELETED', 
-    'LIKE_ADDED', 
-    'LIKE_REMOVED',
-    'IDEA_CREATED',
-    'IDEA_DELETED',
-    'USER_SUSPENDED',
-    'USER_ACTIVATED',
-    'PROFILE_PHOTO_RESET'
-  ]),
+  action_type: z.enum(ACTION_TYPES),
   target_id: z.string().optional(),
   target_type: z.string().optional(),
   details: z.string().optional(),
@@ -484,11 +502,19 @@ export type InsertActionLog = z.infer<typeof insertActionLogSchema>;
 export interface ActionLog {
   id: string;
   user_id: string;
-  action_type: string;
+  action_type: ActionType;
   target_id?: string;
   target_type?: string;
   details?: string;
   created_at: string;
+}
+
+export interface ActionLogWithProfile extends ActionLog {
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+    class_name?: string;
+  };
 }
 
 // ============================================

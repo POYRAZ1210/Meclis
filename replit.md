@@ -12,6 +12,7 @@ A Turkish-language school council portal built with React, Express, and Supabase
 - Moderated idea/blog submission system
 - Class-based student directory
 - **Events & Applications system** (Katılım & Başvurular) - Dynamic form builder for event registrations
+- **Activity Logging** - User activity tracking with timestamps (votes, likes, comments)
 - Admin moderation panel
 - Authentication with email/password
 
@@ -123,6 +124,27 @@ Preferred communication style: Simple, everyday language.
 **Expected Schema Entities** (based on code structure):
 - Users (authentication)
 - Profiles (user metadata, roles, class info)
+- Action Logs (user activity tracking with timestamps)
+
+### Activity Logging System
+
+**Purpose**: Track all user actions for transparency and admin oversight
+
+**Logged Actions** (stored in `action_logs` table):
+- `VOTE_CAST` / `VOTE_CHANGED` - Poll voting
+- `LIKE_ADDED` / `LIKE_REMOVED` - Idea likes
+- `COMMENT_CREATED` / `ANNOUNCEMENT_COMMENT_CREATED` - Comments on ideas/announcements
+- `PROFILE_UPDATED` - Profile changes
+- `LOGIN` - User logins
+
+**API Endpoints**:
+- `GET /api/activity-log` - Current user's activity history (last 50 actions)
+- `GET /api/admin/activity-logs` - Admin view of all user activities
+- `GET /api/admin/activity-stats` - Activity statistics for dashboard
+
+**Frontend**:
+- `/aktiviteler` - User's activity log page (accessible from profile dropdown)
+- Activity history displayed with action icons, timestamps, and descriptions
 - Announcements
 - Polls & Poll Options & Poll Votes
 - Ideas/Blogs & Comments (with moderation status)
