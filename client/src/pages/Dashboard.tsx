@@ -6,7 +6,9 @@ import AnnouncementCard from "@/components/AnnouncementCard";
 import PollCard from "@/components/PollCard";
 import IdeaCard from "@/components/IdeaCard";
 import EmptyState from "@/components/EmptyState";
-import { Bell, Plus, Loader2, MessageSquare, Send, FileText, Download, ArrowRight, Reply, X, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Bell, Plus, Loader2, MessageSquare, Send, FileText, Download, ArrowRight, Reply, X, MoreVertical, Pencil, Trash2, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 import { getAnnouncements, getAnnouncementComments, addAnnouncementComment, editAnnouncementComment, deleteAnnouncementComment, type Announcement } from "@/lib/api/announcements";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [isCommentAnonymous, setIsCommentAnonymous] = useState(false);
 
   const { data: announcements, isLoading: loadingAnnouncements } = useQuery({
     queryKey: ["/api/announcements"],
@@ -67,19 +70,20 @@ export default function Dashboard() {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: ({ content, parentId }: { content: string; parentId?: string }) => {
+    mutationFn: ({ content, parentId, isAnonymous }: { content: string; parentId?: string; isAnonymous?: boolean }) => {
       if (!user) {
         toast({
           description: "Yorum yapmak için lütfen giriş yapın",
         });
         throw new Error("Giriş yapmanız gerekiyor");
       }
-      return addAnnouncementComment(selectedAnnouncement!.id, content, parentId);
+      return addAnnouncementComment(selectedAnnouncement!.id, content, parentId, isAnonymous);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/announcements', selectedAnnouncement?.id, 'comments'] });
       setNewComment("");
       setReplyingTo(null);
+      setIsCommentAnonymous(false);
       toast({
         title: "Başarılı",
         description: variables.parentId ? "Yanıtınız moderatör onayına gönderildi" : "Yorumunuz moderatör onayına gönderildi",
@@ -366,7 +370,7 @@ export default function Dashboard() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
                         e.preventDefault();
-                        addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId });
+                        addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId, isAnonymous: isCommentAnonymous });
                       }
                     }}
                     disabled={addCommentMutation.isPending}
@@ -374,7 +378,7 @@ export default function Dashboard() {
                   />
                   <Button
                     size="icon"
-                    onClick={() => newComment.trim() && addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId })}
+                    onClick={() => newComment.trim() && addCommentMutation.mutate({ content: newComment, parentId: replyingTo?.commentId, isAnonymous: isCommentAnonymous })}
                     disabled={!newComment.trim() || addCommentMutation.isPending}
                     data-testid="button-submit-comment"
                   >
@@ -384,6 +388,18 @@ export default function Dashboard() {
                       <Send className="h-4 w-4" />
                     )}
                   </Button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="dashboard-comment-anonymous"
+                    checked={isCommentAnonymous}
+                    onCheckedChange={(checked) => setIsCommentAnonymous(checked === true)}
+                    data-testid="checkbox-comment-anonymous-dashboard"
+                  />
+                  <Label htmlFor="dashboard-comment-anonymous" className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground">
+                    <EyeOff className="h-3 w-3" />
+                    Anonim yorum
+                  </Label>
                 </div>
               </div>
 
