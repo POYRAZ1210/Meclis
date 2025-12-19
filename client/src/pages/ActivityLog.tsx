@@ -25,11 +25,15 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import "dayjs/locale/tr";
 import type { ActionLog as ActionLogType, ActionType } from "@shared/schema";
 import { fetchActivityLog } from "@/lib/api/activity";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("tr");
 
 const actionConfig: Record<ActionType, { icon: React.ElementType; label: string; color: string }> = {
@@ -93,9 +97,9 @@ function ActivityItem({ activity }: { activity: ActionLogType }) {
         )}
         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>{dayjs(activity.created_at).fromNow()}</span>
+          <span>{dayjs.utc(activity.created_at).local().fromNow()}</span>
           <span className="mx-1">-</span>
-          <span>{dayjs(activity.created_at).format('D MMMM YYYY, HH:mm')}</span>
+          <span>{dayjs.utc(activity.created_at).local().format('D MMMM YYYY, HH:mm')}</span>
         </div>
       </div>
     </div>
