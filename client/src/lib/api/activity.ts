@@ -1,6 +1,13 @@
 import { supabase } from '../supabase';
 import type { ActionLog } from '@shared/schema';
 
+interface ActivityLogResponse {
+  logs: ActionLog[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export async function fetchActivityLog(): Promise<ActionLog[]> {
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -19,5 +26,6 @@ export async function fetchActivityLog(): Promise<ActionLog[]> {
     throw new Error(error.error || 'Failed to fetch activity log');
   }
 
-  return response.json();
+  const data: ActivityLogResponse = await response.json();
+  return data.logs;
 }
