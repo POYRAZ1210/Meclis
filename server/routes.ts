@@ -674,6 +674,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BLÜTEN
   // ============================================
 
+  // Get single bluten post by ID (public)
+  app.get('/api/bluten/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: blutenPost, error } = await supabaseAdmin
+        .from('bluten_posts')
+        .select('*')
+        .eq('id', id)
+        .eq('is_visible', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return res.status(404).json({ error: 'İçerik bulunamadı' });
+        }
+        throw error;
+      }
+
+      res.json(blutenPost);
+    } catch (error: any) {
+      console.error('Error fetching bluten post:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get visible bluten posts (public)
+  app.get('/api/bluten', async (_req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: blutenPosts, error } = await supabaseAdmin
+        .from('bluten_posts')
+        .select('*')
+        .eq('is_visible', true)
+        .order('posted_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json(blutenPosts || []);
+    } catch (error: any) {
+      console.error('Error fetching bluten:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Get ALL bluten posts (for admin panel)
   app.get('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -994,6 +1046,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.toggleBlutenVisibility(id, visible);
       
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete blüten post (admin only)
+  app.delete('/api/admin/bluten/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('bluten_posts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update blüten post (admin only)
+  app.patch('/api/admin/bluten/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { caption, is_visible } = req.body;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const updates: any = {};
+      if (caption !== undefined) updates.caption = caption;
+      if (is_visible !== undefined) updates.is_visible = is_visible;
+
+      const { data, error } = await supabaseAdmin
+        .from('bluten_posts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json(data);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -1768,6 +1871,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.code === '23505') {
         return res.json({ liked: true });
       }
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get approved comments for an idea (public)
+  app.get('/api/ideas/:id/comments', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const { data: comments, error } = await supabaseAdmin
+        .from('comments')
+        .select(`
+          *,
+          author:profiles!comments_author_id_fkey(first_name, last_name)
+        `)
+        .eq('idea_id', id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      res.json(comments || []);
+    } catch (error: any) {
+      console.error('Error fetching comments:', error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -3346,6 +3477,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(data);
     } catch (error: any) {
       console.error('Error updating profile:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // POST /api/profiles/accept-terms - Record terms acceptance timestamp
+  app.post('/api/profiles/accept-terms', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+      }
+
+      const userId = (req as any).userId;
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ accepted_terms_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error accepting terms:', error);
       res.status(400).json({ error: error.message });
     }
   });

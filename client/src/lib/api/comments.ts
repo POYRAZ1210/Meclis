@@ -15,44 +15,38 @@ export interface Comment {
 }
 
 export async function getCommentsByIdea(ideaId: string): Promise<Comment[]> {
-  const { data, error } = await supabase
-    .from('comments')
-    .select(`
-      *,
-      author:profiles!comments_author_id_fkey(first_name, last_name)
-    `)
-    .eq('idea_id', ideaId)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: true });
+  const res = await fetch(`/api/ideas/${ideaId}/comments`, {
+    credentials: 'include',
+  });
 
-  if (error) throw error;
-  return data as Comment[];
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorumlar yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<Comment[]>;
 }
 
-export async function createComment(ideaId: string, content: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Giriş yapmanız gerekiyor');
+export async function createComment(ideaId: string, content: string, isAnonymous: boolean = false) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  // Get profile id
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+  const res = await fetch(`/api/ideas/${ideaId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ content, is_anonymous: isAnonymous }),
+  });
 
-  const { data, error } = await supabase
-    .from('comments')
-    .insert([{
-      idea_id: ideaId,
-      author_id: profile?.id,
-      content,
-      status: 'pending',
-    }])
-    .select()
-    .single();
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum oluşturulamadı');
+  }
 
-  if (error) throw error;
-  return data;
+  return res.json();
 }
 
 export async function approveComment(commentId: string) {
@@ -100,24 +94,38 @@ export async function rejectComment(commentId: string) {
 }
 
 export async function deleteComment(commentId: string) {
-  const { error } = await supabase
-    .from('comments')
-    .delete()
-    .eq('id', commentId);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
+  const res = await fetch(`/api/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Yorum silinemedi');
+  }
 }
 
 export async function getPendingComments(): Promise<Comment[]> {
-  const { data, error } = await supabase
-    .from('comments')
-    .select(`
-      *,
-      author:profiles!comments_author_id_fkey(first_name, last_name)
-    `)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
-  return data as Comment[];
+  const res = await fetch('/api/admin/comments', {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Bekleyen yorumlar yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<Comment[]>;
 }

@@ -103,13 +103,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           // Recursive retry logic
           for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', userId)
-              .maybeSingle();
+            // Get current session for API call
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              throw new Error('Oturum bulunamadı');
+            }
 
-            if (data) {
+            // Fetch profile from backend API
+            const res = await fetch('/api/profiles/me', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              credentials: 'include',
+            });
+
+            if (res.ok) {
+              const data = await res.json();
               // Verify this request is still valid before updating state
               if (thisRequestToken === requestTokenRef.current && activeSessionUserIdRef.current === userId) {
                 setProfile(data);
@@ -122,14 +131,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             }
 
-            if (error && error.code !== 'PGRST116') {
-              console.error('Error loading profile:', error);
-              throw new Error(`Profil yükleme hatası: ${error.message}`);
-            }
-
-            // Profile doesn't exist yet - retry if we haven't exceeded max attempts
-            if (attempt < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 300));
+            // Profile doesn't exist yet (404) - retry if we haven't exceeded max attempts
+            if (res.status === 404 || res.status === 400) {
+              if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                continue;
+              }
+            } else {
+              const error = await res.json();
+              throw new Error(error.error || 'Profil yükleme hatası');
             }
           }
 
@@ -230,15 +240,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
         }
         
-        // Record terms acceptance timestamp for legal compliance
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ accepted_terms_at: new Date().toISOString() })
-          .eq('user_id', data.user.id);
-        
-        if (updateError) {
-          console.error('Failed to record terms acceptance:', updateError);
-          // Don't throw - registration is complete, this is non-blocking
+        // Record terms acceptance timestamp for legal compliance via backend API
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const res = await fetch('/api/profiles/accept-terms', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            credentials: 'include',
+          });
+          
+          if (!res.ok) {
+            console.error('Failed to record terms acceptance');
+            // Don't throw - registration is complete, this is non-blocking
+          }
         }
       } catch (err) {
         throw translateSupabaseError(err, 'profile');

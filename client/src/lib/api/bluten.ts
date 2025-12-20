@@ -15,24 +15,20 @@ export interface BlutenPost {
 }
 
 export async function getBlutenPosts(): Promise<BlutenPost[]> {
-  const { data, error } = await supabase
-    .from('bluten_posts')
-    .select('*')
-    .eq('is_visible', true)
-    .order('posted_at', { ascending: false });
+  const res = await fetch('/api/bluten', {
+    credentials: 'include',
+  });
 
-  if (error) throw error;
-  return data as BlutenPost[];
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Bülten içerikleri yüklenirken hata oluştu');
+  }
+
+  return res.json() as Promise<BlutenPost[]>;
 }
 
 export async function getAllBlutenPosts(): Promise<BlutenPost[]> {
-  const { data, error } = await supabase
-    .from('bluten_posts')
-    .select('*')
-    .order('posted_at', { ascending: false });
-
-  if (error) throw error;
-  return data as BlutenPost[];
+  return getAdminBlutenPosts();
 }
 
 export async function createBlutenPost(postData: {
@@ -40,58 +36,90 @@ export async function createBlutenPost(postData: {
   caption?: string;
   media_url?: string;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Giriş yapmanız gerekiyor');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  // Get profile id
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+  const res = await fetch('/api/admin/bluten', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(postData),
+  });
 
-  const { data, error } = await supabase
-    .from('bluten_posts')
-    .insert([{
-      instagram_url: postData.instagram_url,
-      caption: postData.caption,
-      media_url: postData.media_url,
-      created_by: profile?.id,
-      is_visible: true,
-    }])
-    .select()
-    .single();
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Bülten paylaşımı oluşturulamadı');
+  }
 
-  if (error) throw error;
-  return data;
+  return res.json();
 }
 
 export async function updateBlutenPost(
   id: string,
   updates: { caption?: string; is_visible?: boolean }
 ) {
-  const { data, error } = await supabase
-    .from('bluten_posts')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
-  return data;
+  const res = await fetch(`/api/admin/bluten/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(updates),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Bülten paylaşımı güncellenemedi');
+  }
+
+  return res.json();
 }
 
 export async function deleteBlutenPost(id: string) {
-  const { error } = await supabase
-    .from('bluten_posts')
-    .delete()
-    .eq('id', id);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
 
-  if (error) throw error;
+  const res = await fetch(`/api/admin/bluten/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Bülten paylaşımı silinemedi');
+  }
 }
 
 export async function toggleBlutenVisibility(id: string, is_visible: boolean) {
-  return updateBlutenPost(id, { is_visible });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Giriş yapmanız gerekiyor');
+
+  const res = await fetch(`/api/admin/bluten/${id}/visibility`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ visible: is_visible }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Görünürlük değiştirilemedi');
+  }
+
+  return res.json();
 }
 
 export async function triggerInstagramSync(): Promise<{ count: number }> {

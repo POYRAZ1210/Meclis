@@ -3,27 +3,13 @@ import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2, Instagram, ExternalLink, Play } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { type BlutenPost } from "@/lib/api/bluten";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 dayjs.locale("tr");
-
-export interface BlutenPost {
-  id: string;
-  instagram_post_id?: string;
-  instagram_url: string;
-  media_url?: string;
-  media_type?: string;
-  caption?: string;
-  username?: string;
-  is_visible: boolean;
-  created_by?: string;
-  posted_at?: string;
-  fetched_at: string;
-}
 
 export default function BlutenDetail() {
   const { id } = useParams();
@@ -32,14 +18,16 @@ export default function BlutenDetail() {
   const { data: post, isLoading, error } = useQuery({
     queryKey: ["/api/bluten", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bluten_posts")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const res = await fetch(`/api/bluten/${id}`, {
+        credentials: 'include',
+      });
 
-      if (error) throw error;
-      return data as BlutenPost;
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'İçerik yüklenirken hata oluştu');
+      }
+
+      return res.json() as Promise<BlutenPost>;
     },
   });
 
