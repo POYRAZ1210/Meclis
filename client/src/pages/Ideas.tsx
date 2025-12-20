@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X, EyeOff } from "lucide-react";
+import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X, EyeOff, Search, Filter, ArrowUpDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -46,6 +47,8 @@ export default function Ideas() {
   const [editingComment, setEditingComment] = useState<{ id: string; content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string; ideaId: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "most_liked" | "most_commented">("newest");
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const [, setLocation] = useLocation();
@@ -54,6 +57,36 @@ export default function Ideas() {
     queryKey: ['/api/ideas'],
     queryFn: getIdeas,
   });
+
+  // Filter and sort ideas
+  const filteredAndSortedIdeas = ideas ? [...ideas]
+    .filter((idea: any) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      const authorName = idea.author 
+        ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.toLowerCase()
+        : "";
+      return (
+        idea.title.toLowerCase().includes(query) ||
+        idea.content.toLowerCase().includes(query) ||
+        authorName.includes(query)
+      );
+    })
+    .sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "oldest":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "most_liked":
+          return (b.likes_count || 0) - (a.likes_count || 0);
+        case "most_commented":
+          return (b.comments?.length || 0) - (a.comments?.length || 0);
+        default:
+          return 0;
+      }
+    })
+  : [];
 
   const createMutation = useMutation({
     mutationFn: (data: { title: string; content: string; imageUrl?: string; videoUrl?: string; attachmentUrl?: string; attachmentType?: string; is_anonymous?: boolean }) => {
@@ -372,8 +405,34 @@ export default function Ideas() {
         </Dialog>
       </div>
 
+      {/* Search and Filter */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Fikir ara (başlık, içerik veya yazar)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+            data-testid="input-search-ideas"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <SelectTrigger className="w-full sm:w-48" data-testid="select-sort-ideas">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Sırala" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">En Yeni</SelectItem>
+            <SelectItem value="oldest">En Eski</SelectItem>
+            <SelectItem value="most_liked">En Çok Beğenilen</SelectItem>
+            <SelectItem value="most_commented">En Çok Yorumlanan</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Top 3 Most Liked Ideas */}
-      {ideas && ideas.length > 0 && (
+      {ideas && ideas.length > 0 && !searchQuery && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Trophy className="h-5 w-5 text-yellow-500" />
@@ -436,15 +495,30 @@ export default function Ideas() {
         </div>
       )}
 
-      {/* Latest Ideas */}
-      <div className="flex items-center gap-2 mb-4">
-        <Clock className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-bold">En Yeni Fikirler</h2>
+      {/* Ideas List */}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold">
+            {searchQuery ? `Arama Sonuçları (${filteredAndSortedIdeas.length})` : "Tüm Fikirler"}
+          </h2>
+        </div>
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchQuery("")}
+            data-testid="button-clear-search"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Temizle
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
-        {ideas && ideas.length > 0 ? (
-          ideas.map((idea: any) => {
+        {filteredAndSortedIdeas.length > 0 ? (
+          filteredAndSortedIdeas.map((idea: any) => {
             const isIdeaAnon = idea.is_anonymous && !idea.author;
             const authorName = idea.author
               ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
@@ -775,12 +849,25 @@ export default function Ideas() {
         ) : (
           <Card className="p-12 text-center">
             <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Henüz fikir yok</h3>
-            <p className="text-muted-foreground mb-4">İlk fikri paylaşan sen ol!</p>
-            <Button onClick={() => setOpen(true)} data-testid="button-first-idea">
-              <Lightbulb className="h-4 w-4 mr-2" />
-              Yeni Fikir
-            </Button>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery ? "Sonuç bulunamadı" : "Henüz fikir yok"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery 
+                ? "Arama kriterlerinize uygun fikir bulunamadı." 
+                : "İlk fikri paylaşan sen ol!"}
+            </p>
+            {searchQuery ? (
+              <Button variant="outline" onClick={() => setSearchQuery("")} data-testid="button-clear-search-empty">
+                <X className="h-4 w-4 mr-2" />
+                Aramayı Temizle
+              </Button>
+            ) : (
+              <Button onClick={() => setOpen(true)} data-testid="button-first-idea">
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Yeni Fikir
+              </Button>
+            )}
           </Card>
         )}
       </div>
