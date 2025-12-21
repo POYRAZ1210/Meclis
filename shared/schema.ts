@@ -157,6 +157,8 @@ export const events = pgTable("events", {
   name: text("name").notNull(),
   description: text("description"),
   is_active: boolean("is_active").notNull().default(true),
+  event_date: timestamp("event_date"),
+  end_date: timestamp("end_date"),
   form_fields: jsonb("form_fields").notNull().default([]),
   created_by: varchar("created_by"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
@@ -566,6 +568,8 @@ export const insertEventSchema = z.object({
   name: z.string().min(3, "Etkinlik adı en az 3 karakter olmalı"),
   description: z.string().optional(),
   is_active: z.boolean().default(true),
+  event_date: z.string().optional(),
+  end_date: z.string().optional(),
   form_fields: z.array(formFieldSchema).default([]),
   created_by: z.string().uuid().optional(),
 });
@@ -576,6 +580,8 @@ export const updateEventSchema = z.object({
   name: z.string().min(3, "Etkinlik adı en az 3 karakter olmalı").optional(),
   description: z.string().optional(),
   is_active: z.boolean().optional(),
+  event_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
   form_fields: z.array(formFieldSchema).optional(),
 });
 
@@ -586,6 +592,8 @@ export interface Event {
   name: string;
   description?: string;
   is_active: boolean;
+  event_date?: string;
+  end_date?: string;
   form_fields: FormField[];
   created_by?: string;
   created_at: string;

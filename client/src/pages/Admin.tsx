@@ -76,12 +76,16 @@ export default function Admin() {
   const [newEventName, setNewEventName] = useState("");
   const [newEventDescription, setNewEventDescription] = useState("");
   const [newEventActive, setNewEventActive] = useState(true);
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventEndDate, setNewEventEndDate] = useState("");
   const [newEventFormFields, setNewEventFormFields] = useState<FormField[]>([]);
   
   // Edit event form state  
   const [editEventName, setEditEventName] = useState("");
   const [editEventDescription, setEditEventDescription] = useState("");
   const [editEventActive, setEditEventActive] = useState(true);
+  const [editEventDate, setEditEventDate] = useState("");
+  const [editEventEndDate, setEditEventEndDate] = useState("");
   const [editEventFormFields, setEditEventFormFields] = useState<FormField[]>([]);
   
   // Form field builder state (for new event)
@@ -260,6 +264,8 @@ export default function Admin() {
       setNewEventName("");
       setNewEventDescription("");
       setNewEventActive(true);
+      setNewEventDate("");
+      setNewEventEndDate("");
       setNewEventFormFields([]);
       toast({ description: "Etkinlik oluşturuldu" });
     },
@@ -309,6 +315,8 @@ export default function Admin() {
     setEditEventName(event.name);
     setEditEventDescription(event.description || "");
     setEditEventActive(event.is_active);
+    setEditEventDate(event.event_date ? dayjs(event.event_date).format("YYYY-MM-DDTHH:mm") : "");
+    setEditEventEndDate(event.end_date ? dayjs(event.end_date).format("YYYY-MM-DDTHH:mm") : "");
     setEditEventFormFields(event.form_fields || []);
   };
 
@@ -1399,6 +1407,29 @@ export default function Admin() {
                     </div>
                   </div>
                   
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-date">Etkinlik Tarihi</Label>
+                      <Input
+                        id="event-date"
+                        type="datetime-local"
+                        value={newEventDate}
+                        onChange={(e) => setNewEventDate(e.target.value)}
+                        data-testid="input-event-date"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-end-date">Bitiş Tarihi (İsteğe Bağlı)</Label>
+                      <Input
+                        id="event-end-date"
+                        type="datetime-local"
+                        value={newEventEndDate}
+                        onChange={(e) => setNewEventEndDate(e.target.value)}
+                        data-testid="input-event-end-date"
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <Switch
                       id="event-active"
@@ -1510,6 +1541,8 @@ export default function Admin() {
                         name: newEventName.trim(),
                         description: newEventDescription.trim() || undefined,
                         is_active: newEventActive,
+                        event_date: newEventDate || undefined,
+                        end_date: newEventEndDate || undefined,
                         form_fields: newEventFormFields,
                       });
                     }}
@@ -1887,6 +1920,29 @@ export default function Admin() {
                 </div>
               </div>
               
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-date">Etkinlik Tarihi</Label>
+                  <Input
+                    id="edit-event-date"
+                    type="datetime-local"
+                    value={editEventDate}
+                    onChange={(e) => setEditEventDate(e.target.value)}
+                    data-testid="input-edit-event-date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-end-date">Bitiş Tarihi (İsteğe Bağlı)</Label>
+                  <Input
+                    id="edit-event-end-date"
+                    type="datetime-local"
+                    value={editEventEndDate}
+                    onChange={(e) => setEditEventEndDate(e.target.value)}
+                    data-testid="input-edit-event-end-date"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch
                   id="edit-event-active"
@@ -2004,6 +2060,8 @@ export default function Admin() {
                         name: editEventName.trim(),
                         description: editEventDescription.trim() || undefined,
                         is_active: editEventActive,
+                        event_date: editEventDate || null,
+                        end_date: editEventEndDate || null,
                         form_fields: editEventFormFields,
                       },
                     });

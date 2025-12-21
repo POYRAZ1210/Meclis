@@ -1,4 +1,4 @@
-import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User, ClipboardList, History } from "lucide-react";
+import { Home, Bell, BarChart3, Lightbulb, Users, Shield, LogOut, Image, User, ClipboardList, History, CalendarDays } from "lucide-react";
 import mayaLogo from "@assets/maya-okullari-logo-simge_1763489344712.webp";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export default function Header({
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
     { path: "/basvurular", label: "Başvurular", icon: ClipboardList, requireAuth: true },
+    { path: "/takvim", label: "Takvim", icon: CalendarDays, requireAuth: true },
   ];
 
   if (userRole === "admin") {

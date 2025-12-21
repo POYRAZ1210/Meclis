@@ -2870,6 +2870,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: validated.name,
           description: validated.description || null,
           is_active: validated.is_active,
+          event_date: validated.event_date || null,
+          end_date: validated.end_date || null,
           form_fields: validated.form_fields,
           created_by: profileId,
         })
@@ -2898,6 +2900,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validated.name !== undefined) updateData.name = validated.name;
       if (validated.description !== undefined) updateData.description = validated.description;
       if (validated.is_active !== undefined) updateData.is_active = validated.is_active;
+      if (validated.event_date !== undefined) updateData.event_date = validated.event_date;
+      if (validated.end_date !== undefined) updateData.end_date = validated.end_date;
       if (validated.form_fields !== undefined) updateData.form_fields = validated.form_fields;
 
       const { data, error } = await supabaseAdmin

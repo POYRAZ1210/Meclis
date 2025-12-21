@@ -22,6 +22,8 @@ export async function createEvent(data: {
   name: string;
   description?: string;
   is_active?: boolean;
+  event_date?: string;
+  end_date?: string;
   form_fields?: FormField[];
 }): Promise<Event> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -47,6 +49,8 @@ export async function updateEvent(id: string, data: {
   name?: string;
   description?: string;
   is_active?: boolean;
+  event_date?: string | null;
+  end_date?: string | null;
   form_fields?: FormField[];
 }): Promise<Event> {
   const { data: { session } } = await supabase.auth.getSession();
