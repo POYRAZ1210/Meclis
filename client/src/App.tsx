@@ -107,7 +107,7 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/takvim">
-          <ProtectedRoute requireAuth={true}>
+          <ProtectedRoute requireAdmin={true}>
             <Takvim />
           </ProtectedRoute>
         </Route>

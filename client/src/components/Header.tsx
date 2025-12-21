@@ -40,7 +40,7 @@ export default function Header({
     { path: "/oylamalar", label: "Oylamalar", icon: BarChart3 },
     { path: "/fikirler", label: "Fikirler", icon: Lightbulb },
     { path: "/basvurular", label: "Başvurular", icon: ClipboardList, requireAuth: true },
-    { path: "/takvim", label: "Takvim", icon: CalendarDays, requireAuth: true },
+    { path: "/takvim", label: "Takvim", icon: CalendarDays, adminOnly: true },
   ];
 
   if (userRole === "admin") {
@@ -75,7 +75,11 @@ export default function Header({
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems
-              .filter((item) => !item.requireAuth || isAuthenticated)
+              .filter((item) => {
+                if (item.adminOnly && userRole !== "admin") return false;
+                if (item.requireAuth && !isAuthenticated) return false;
+                return true;
+              })
               .map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.path;
@@ -154,7 +158,11 @@ export default function Header({
 
         <nav className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
           {navItems
-            .filter((item) => !item.requireAuth || isAuthenticated)
+            .filter((item) => {
+              if (item.adminOnly && userRole !== "admin") return false;
+              if (item.requireAuth && !isAuthenticated) return false;
+              return true;
+            })
             .map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
