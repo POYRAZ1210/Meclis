@@ -1541,8 +1541,8 @@ export default function Admin() {
                         name: newEventName.trim(),
                         description: newEventDescription.trim() || undefined,
                         is_active: newEventActive,
-                        event_date: newEventDate || undefined,
-                        end_date: newEventEndDate || undefined,
+                        event_date: newEventDate ? new Date(newEventDate).toISOString() : undefined,
+                        end_date: newEventEndDate ? new Date(newEventEndDate).toISOString() : undefined,
                         form_fields: newEventFormFields,
                       });
                     }}
@@ -2060,8 +2060,8 @@ export default function Admin() {
                         name: editEventName.trim(),
                         description: editEventDescription.trim() || undefined,
                         is_active: editEventActive,
-                        event_date: editEventDate || null,
-                        end_date: editEventEndDate || null,
+                        event_date: editEventDate ? new Date(editEventDate).toISOString() : null,
+                        end_date: editEventEndDate ? new Date(editEventEndDate).toISOString() : null,
                         form_fields: editEventFormFields,
                       },
                     });
