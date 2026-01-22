@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme, type DesignTheme, type ColorMode } from "@/contexts/ThemeContext";
+import { useTheme, type ColorMode } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Mail, Lock, Upload, Image as ImageIcon, Palette, Sun, Moon, Sparkles, GraduationCap } from "lucide-react";
+import { Loader2, User, Mail, Lock, Upload, Image as ImageIcon, Palette, Sun, Moon } from "lucide-react";
 import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 export default function Profile() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const { designTheme, colorMode, setDesignTheme, setColorMode } = useTheme();
+  const { colorMode, setColorMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -294,40 +294,9 @@ export default function Profile() {
             </CardTitle>
             <CardDescription>Görünüm tercihlerinizi özelleştirin</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label className="text-base font-medium mb-3 block">Tasarım Teması</Label>
-              <RadioGroup 
-                value={designTheme} 
-                onValueChange={(value) => setDesignTheme(value as DesignTheme)}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-              >
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setDesignTheme('maya')}>
-                  <RadioGroupItem value="maya" id="theme-maya" data-testid="radio-theme-maya" />
-                  <Label htmlFor="theme-maya" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <GraduationCap className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                    <div>
-                      <div className="font-medium">Maya Klasik</div>
-                      <div className="text-xs text-muted-foreground">Mor ve beyaz okul teması</div>
-                    </div>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer card-hover-scale group" onClick={() => setDesignTheme('framer')}>
-                  <RadioGroupItem value="framer" id="theme-framer" data-testid="radio-theme-framer" />
-                  <Label htmlFor="theme-framer" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Sparkles className="h-5 w-5 text-primary group-hover:rotate-12 group-hover:scale-110 transition-transform" />
-                    <div>
-                      <div className="font-medium">Modern</div>
-                      <div className="text-xs text-muted-foreground">Cam efektli modern tasarım</div>
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div>
-              <Label className="text-base font-medium mb-3 block">Renk Modu</Label>
-              <RadioGroup 
+          <CardContent>
+            <Label className="text-base font-medium mb-3 block">Renk Modu</Label>
+            <RadioGroup 
                 value={colorMode} 
                 onValueChange={(value) => setColorMode(value as ColorMode)}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-3"
@@ -352,8 +321,7 @@ export default function Profile() {
                     </div>
                   </Label>
                 </div>
-              </RadioGroup>
-            </div>
+            </RadioGroup>
           </CardContent>
         </Card>
 
