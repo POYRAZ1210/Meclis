@@ -2,12 +2,10 @@ import { supabaseAdmin } from './services/supabase';
 import type { 
   InsertAnnouncement, 
   InsertPoll, 
-  InsertBlutenPost, 
   CreateUser,
   Announcement,
   Poll,
   PollOption,
-  BlutenPost,
   Profile
 } from "@shared/schema";
 
@@ -21,10 +19,6 @@ export interface IStorage {
   createPollWithOptions(data: InsertPoll): Promise<Poll>;
   deletePoll(id: string): Promise<void>;
   togglePollStatus(id: string, isOpen: boolean): Promise<Poll>;
-  
-  // Blüten
-  createManualBlutenPost(data: InsertBlutenPost): Promise<BlutenPost>;
-  toggleBlutenVisibility(id: string, visible: boolean): Promise<void>;
   
   // Users (Manual creation & management)
   createUserWithProfile(data: CreateUser): Promise<Profile>;
@@ -130,30 +124,6 @@ export class SupabaseStorage implements IStorage {
     
     if (error) throw error;
     return poll;
-  }
-
-  async createManualBlutenPost(data: InsertBlutenPost): Promise<BlutenPost> {
-    if (!supabaseAdmin) throw new Error('Supabase not configured');
-    
-    const { data: post, error } = await supabaseAdmin
-      .from('bluten_posts')
-      .insert(data)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return post;
-  }
-
-  async toggleBlutenVisibility(id: string, visible: boolean): Promise<void> {
-    if (!supabaseAdmin) throw new Error('Supabase not configured');
-    
-    const { error } = await supabaseAdmin
-      .from('bluten_posts')
-      .update({ is_visible: visible })
-      .eq('id', id);
-    
-    if (error) throw error;
   }
 
   async createUserWithProfile(data: CreateUser): Promise<Profile> {

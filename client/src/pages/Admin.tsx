@@ -19,10 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, Image, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus, Calendar, Edit2, ClipboardList, TrendingUp, PieChart } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Users, Bell, BarChart3, FileText, Loader2, MessageSquare, Trash2, Download, Camera, Check, X, Ban, UserCheck, ImageOff, Heart, GraduationCap, Plus, Calendar, Edit2, ClipboardList, TrendingUp, PieChart } from "lucide-react";
 import { getAdminProfiles, updateProfile, getClasses, createClass, deleteClass, type SchoolClass } from "@/lib/api/profiles";
 import { getAdminIdeas, getAdminComments, updateIdeaStatus, updateCommentStatus, deleteIdea } from "@/lib/api/ideas";
-import { getAdminBlutenPosts, toggleBlutenVisibility } from "@/lib/api/bluten";
 import { getAdminAnnouncements, deleteAnnouncement, getAdminAnnouncementComments, updateAnnouncementCommentStatus } from "@/lib/api/announcements";
 import { getAdminPolls, deletePoll, togglePollStatus, publishPollResults } from "@/lib/api/polls";
 import { getPendingProfilePictures, approveProfilePicture, rejectProfilePicture, suspendUser, activateUser, resetUserProfilePicture, deleteComment, clearIdeaLikes } from "@/lib/api/admin";
@@ -45,7 +44,6 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import AnnouncementForm from "@/components/admin/AnnouncementForm";
 import PollForm from "@/components/admin/PollForm";
-import BlutenForm from "@/components/admin/BlutenForm";
 import UserForm from "@/components/admin/UserForm";
 import PollStatsDialog from "@/components/admin/PollStatsDialog";
 import {
@@ -225,11 +223,6 @@ export default function Admin() {
   const { data: adminIdeas, isLoading: loadingIdeas } = useQuery({
     queryKey: ["/api/admin/ideas"],
     queryFn: getAdminIdeas,
-  });
-
-  const { data: allBlutenPosts, isLoading: loadingBluten } = useQuery({
-    queryKey: ["/api/admin/bluten"],
-    queryFn: getAdminBlutenPosts,
   });
 
   const { data: adminComments, isLoading: loadingComments } = useQuery({
@@ -534,25 +527,6 @@ export default function Admin() {
     },
   });
 
-  const blutenVisibilityMutation = useMutation({
-    mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
-      toggleBlutenVisibility(id, visible),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bluten"] });
-      toast({
-        title: "Başarılı",
-        description: "Blüten görünürlüğü güncellendi",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: error.message || "Görünürlük değiştirilirken bir hata oluştu",
-      });
-    },
-  });
-
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
       <div className="mb-8">
@@ -569,10 +543,6 @@ export default function Admin() {
           <TabsTrigger value="announcements" data-testid="tab-announcements">
             <Bell className="h-4 w-4 mr-2" />
             Duyurular
-          </TabsTrigger>
-          <TabsTrigger value="bluten" data-testid="tab-bluten">
-            <Image className="h-4 w-4 mr-2" />
-            Blüten
           </TabsTrigger>
           <TabsTrigger value="polls" data-testid="tab-polls">
             <BarChart3 className="h-4 w-4 mr-2" />
@@ -899,72 +869,6 @@ export default function Admin() {
                   <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">Henüz oylama yok</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bluten">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Bülten Yönetimi ({allBlutenPosts?.length || 0})</CardTitle>
-              <BlutenForm />
-            </CardHeader>
-            <CardContent>
-              {loadingBluten ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : allBlutenPosts && allBlutenPosts.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Görsel</TableHead>
-                      <TableHead>Açıklama</TableHead>
-                      <TableHead>Kaynak</TableHead>
-                      <TableHead>Tarih</TableHead>
-                      <TableHead>Görünür</TableHead>
-                      <TableHead className="text-right">İşlemler</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allBlutenPosts.map((post) => (
-                      <TableRow key={post.id} data-testid={`row-bluten-${post.id}`}>
-                        <TableCell>
-                          <div className="w-12 h-12 rounded overflow-hidden bg-muted">
-                            {post.media_url && (
-                              <img src={post.media_url} alt="" className="object-cover w-full h-full" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                          <p className="truncate">{post.caption || "Açıklama yok"}</p>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {post.instagram_post_id ? "Instagram (Otomatik)" : "Manuel"}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {post.posted_at ? dayjs(post.posted_at).format('DD.MM.YYYY') : dayjs(post.fetched_at).format('DD.MM.YYYY')}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={post.is_visible ? "approved" : "rejected"} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => blutenVisibilityMutation.mutate({ id: post.id, visible: !post.is_visible })}
-                            data-testid={`button-toggle-bluten-${post.id}`}
-                          >
-                            {post.is_visible ? <Eye className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">Henüz Bülten içeriği yok</p>
               )}
             </CardContent>
           </Card>

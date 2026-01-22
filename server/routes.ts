@@ -6,7 +6,6 @@ import { isAdmin, getUserRole, supabaseAdmin } from "./services/supabase";
 import { 
   insertAnnouncementSchema, 
   insertPollSchema, 
-  insertBlutenPostSchema,
   createUserSchema,
   updateProfileSchema,
   insertIdeaSchema,
@@ -671,82 +670,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
-  // BLÜTEN
-  // ============================================
-
-  // Get single bluten post by ID (public)
-  app.get('/api/bluten/:id', async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-
-      if (!supabaseAdmin) {
-        return res.status(500).json({ error: 'Supabase not configured' });
-      }
-
-      const { data: blutenPost, error } = await supabaseAdmin
-        .from('bluten_posts')
-        .select('*')
-        .eq('id', id)
-        .eq('is_visible', true)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return res.status(404).json({ error: 'İçerik bulunamadı' });
-        }
-        throw error;
-      }
-
-      res.json(blutenPost);
-    } catch (error: any) {
-      console.error('Error fetching bluten post:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Get visible bluten posts (public)
-  app.get('/api/bluten', async (_req: Request, res: Response) => {
-    try {
-      if (!supabaseAdmin) {
-        return res.status(500).json({ error: 'Supabase not configured' });
-      }
-
-      const { data: blutenPosts, error } = await supabaseAdmin
-        .from('bluten_posts')
-        .select('*')
-        .eq('is_visible', true)
-        .order('posted_at', { ascending: false });
-
-      if (error) throw error;
-
-      res.json(blutenPosts || []);
-    } catch (error: any) {
-      console.error('Error fetching bluten:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Get ALL bluten posts (for admin panel)
-  app.get('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      if (!supabaseAdmin) {
-        return res.status(500).json({ error: 'Supabase not configured' });
-      }
-
-      const { data: blutenPosts, error } = await supabaseAdmin
-        .from('bluten_posts')
-        .select('*')
-        .order('posted_at', { ascending: false });
-
-      if (error) throw error;
-
-      res.json(blutenPosts);
-    } catch (error: any) {
-      console.error('Error fetching admin bluten:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-
   // Get ALL profiles (for admin panel) with optional class filter
   app.get('/api/admin/profiles', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -1010,94 +933,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Error fetching poll stats:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-  
-  // Create manual blüten post
-  app.post('/api/admin/bluten', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const validated = insertBlutenPostSchema.parse(req.body);
-      const userId = (req as any).userId;
-      
-      // Get profile ID from user ID
-      const profileId = await getProfileId(userId);
-      if (!profileId) {
-        return res.status(400).json({ error: "Profile not found" });
-      }
-      
-      const post = await storage.createManualBlutenPost({
-        ...validated,
-        created_by: profileId,
-      });
-      
-      res.json(post);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-  
-  // Toggle blüten visibility
-  app.patch('/api/admin/bluten/:id/visibility', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { visible } = req.body;
-      
-      await storage.toggleBlutenVisibility(id, visible);
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Delete blüten post (admin only)
-  app.delete('/api/admin/bluten/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-
-      if (!supabaseAdmin) {
-        return res.status(500).json({ error: 'Supabase not configured' });
-      }
-
-      const { error } = await supabaseAdmin
-        .from('bluten_posts')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Update blüten post (admin only)
-  app.patch('/api/admin/bluten/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { caption, is_visible } = req.body;
-
-      if (!supabaseAdmin) {
-        return res.status(500).json({ error: 'Supabase not configured' });
-      }
-
-      const updates: any = {};
-      if (caption !== undefined) updates.caption = caption;
-      if (is_visible !== undefined) updates.is_visible = is_visible;
-
-      const { data, error } = await supabaseAdmin
-        .from('bluten_posts')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      res.json(data);
-    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   });
