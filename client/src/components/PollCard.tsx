@@ -64,14 +64,14 @@ export default function PollCard({
   };
 
   return (
-    <Card className="card-hover-lift group" data-testid="card-poll">
-      <CardHeader className="pb-4">
+    <Card className="group border-border/50" data-testid="card-poll">
+      <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <BarChart3 className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-lg leading-tight">{question}</h3>
+            <h3 className="font-medium text-base leading-tight">{question}</h3>
           </div>
         </div>
       </CardHeader>

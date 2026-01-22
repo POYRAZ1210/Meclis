@@ -57,59 +57,64 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-background">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 rounded-full bg-foreground flex items-center justify-center mb-6">
             <img 
               src={mayaLogo} 
               alt="Maya Okulları" 
-              className="h-12 w-12 object-contain"
+              className="h-8 w-8 object-contain invert dark:invert-0"
             />
           </div>
-          <CardTitle className="text-2xl text-center">Maya Meclisi</CardTitle>
-          <CardDescription className="text-center">
-            Hesabınıza giriş yapın
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit} noValidate>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-posta</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="ornek@mayaokullari.k12.tr"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                data-testid="input-email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Şifre</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                data-testid="input-password"
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
-              {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
-            </Button>
-            <Link href="/sifre-sifirla">
-              <Button variant="ghost" className="w-full text-xs" data-testid="button-forgot-password">
-                Şifremi Unuttum
+          <h1 className="text-2xl font-semibold tracking-tight mb-2">Maya Meclisi</h1>
+          <p className="text-sm text-muted-foreground">Hesabınıza giriş yapın</p>
+        </div>
+        
+        <Card className="border-border/50">
+          <form onSubmit={handleSubmit} noValidate>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">E-posta</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="ornek@mayaokullari.k12.tr"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  data-testid="input-email"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
+                  <Link href="/sifre-sifirla" className="text-xs text-muted-foreground">
+                    Şifremi Unuttum
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  data-testid="input-password"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col pt-2 pb-6">
+              <Button type="submit" className="w-full" disabled={loading} data-testid="button-submit-login">
+                {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
               </Button>
-            </Link>
-          </CardFooter>
-        </form>
-      </Card>
+            </CardFooter>
+          </form>
+        </Card>
+        
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Maya Okulları Öğrenci Portalı
+        </p>
+      </div>
     </div>
   );
 }

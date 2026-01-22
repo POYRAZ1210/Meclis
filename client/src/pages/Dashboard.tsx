@@ -175,24 +175,23 @@ export default function Dashboard() {
   const recentIdeas = ideas?.slice(0, 5);
 
   return (
-    <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8 text-center md:text-left">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-          <span className="text-primary">Maya Meclisi</span> Portalı'na Hoş Geldiniz
+    <div className="container mx-auto px-4 lg:px-8 py-8">
+      <div className="mb-10">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
+          Hoş Geldiniz
         </h1>
-        <p className="text-muted-foreground">Öğrenci meclisi haberler, oylamalar ve fikirleriniz için</p>
+        <p className="text-muted-foreground text-sm">Maya Meclisi - Öğrenci haberler, oylamalar ve fikirler</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider">
                 Son Duyurular
               </h2>
               <Link href="/duyurular">
-                <Button variant="ghost" size="sm" data-testid="link-all-announcements">
+                <Button variant="ghost" size="sm" className="text-xs" data-testid="link-all-announcements">
                   Tümünü Gör
                 </Button>
               </Link>
@@ -232,9 +231,9 @@ export default function Dashboard() {
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Son Fikirler</h2>
+              <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider">Son Fikirler</h2>
               <Link href="/fikirler">
-                <Button variant="ghost" size="sm" data-testid="link-all-ideas">
+                <Button variant="ghost" size="sm" className="text-xs" data-testid="link-all-ideas">
                   Tümünü Gör
                 </Button>
               </Link>
@@ -285,20 +284,20 @@ export default function Dashboard() {
         <div className="space-y-6">
           {activePoll && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Aktif Oylama</h2>
+              <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider mb-4">Aktif Oylama</h2>
               <PollDisplay poll={activePoll} onVote={voteMutation.mutate} />
             </div>
           )}
 
-          <div className="rounded-lg border bg-card p-6">
-            <h3 className="font-semibold mb-3">Yeni Fikir Ekle</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="rounded-lg border border-border/50 p-5">
+            <h3 className="font-medium text-sm mb-2">Fikir Paylaş</h3>
+            <p className="text-xs text-muted-foreground mb-4">
               Okulunuzu geliştirmek için fikirlerinizi paylaşın
             </p>
             <Link href="/fikirler">
-              <Button className="w-full" data-testid="button-new-idea">
-                <Plus className="h-4 w-4 mr-2" />
-                Fikir Paylaş
+              <Button size="sm" className="w-full" data-testid="button-new-idea">
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Yeni Fikir
               </Button>
             </Link>
           </div>

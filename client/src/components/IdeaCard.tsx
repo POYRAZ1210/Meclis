@@ -38,51 +38,50 @@ export default function IdeaCard({
 
   return (
     <Card 
-      className="card-hover-lift cursor-pointer group" 
+      className="cursor-pointer group border-border/50 hover-elevate" 
       data-testid="card-idea"
       onClick={handleClick}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
-              <Lightbulb className="h-5 w-5 text-primary group-hover:animate-pulse transition-transform" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg leading-tight mb-2">{title}</h3>
+              <h3 className="font-medium text-base leading-tight mb-1.5">{title}</h3>
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-5 w-5 border border-border/40">
                   {authorPictureUrl && <AvatarImage src={authorPictureUrl} alt={authorName} />}
-                  <AvatarFallback className="bg-muted text-xs">
+                  <AvatarFallback className="bg-muted text-[10px]">
                     {authorInitials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-muted-foreground">{authorName}</span>
+                <span className="text-xs text-muted-foreground">{authorName}</span>
               </div>
             </div>
           </div>
           <StatusBadge status={status} />
         </div>
       </CardHeader>
-      <CardContent className="pb-3">
+      <CardContent className="pb-2">
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
           {excerpt}
         </p>
       </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {createdAt}
-          </span>
+      <CardFooter className="flex items-center justify-between pt-0">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{createdAt}</span>
+          <span className="text-border">•</span>
           <span className="flex items-center gap-1">
             <MessageSquare className="h-3 w-3" />
-            {commentCount} yorum
+            {commentCount}
           </span>
         </div>
         <Button 
           variant="ghost" 
-          size="sm" 
+          size="sm"
+          className="text-xs"
           onClick={(e) => {
             e.stopPropagation();
             if (onReadMore) onReadMore();

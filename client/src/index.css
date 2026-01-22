@@ -2,166 +2,199 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE BASE - Default and Maya light theme */
+/* ========================================
+   VERCEL-STYLE DESIGN SYSTEM
+   Clean, minimal, professional
+   ======================================== */
+
+/* LIGHT MODE - Vercel Light */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --button-outline: rgba(0,0,0, .08);
+  --badge-outline: rgba(0,0,0, .04);
+  --opaque-button-border-intensity: -6;
+  --elevate-1: rgba(0,0,0, .02);
+  --elevate-2: rgba(0,0,0, .05);
+  
+  /* Core colors - Clean whites and grays */
   --background: 0 0% 100%;
   --foreground: 0 0% 9%;
-  --border: 0 0% 90%;
-  --card: 0 0% 98%;
+  --border: 0 0% 89%;
+  
+  /* Card - Subtle off-white */
+  --card: 0 0% 100%;
   --card-foreground: 0 0% 9%;
-  --card-border: 0 0% 94%;
-  --sidebar: 0 0% 96%;
+  --card-border: 0 0% 92%;
+  
+  /* Sidebar - Light gray */
+  --sidebar: 0 0% 98%;
   --sidebar-foreground: 0 0% 9%;
   --sidebar-border: 0 0% 92%;
-  --sidebar-primary: 280 69% 36%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 280 8% 90%;
+  --sidebar-primary: 0 0% 9%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 95%;
   --sidebar-accent-foreground: 0 0% 9%;
-  --sidebar-ring: 280 69% 36%;
-  --popover: 0 0% 94%;
+  --sidebar-ring: 0 0% 9%;
+  
+  /* Popover */
+  --popover: 0 0% 100%;
   --popover-foreground: 0 0% 9%;
-  --popover-border: 0 0% 90%;
-  --primary: 280 69% 36%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 92%;
+  --popover-border: 0 0% 92%;
+  
+  /* Primary - Pure black for Vercel style */
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary - Light gray */
+  --secondary: 0 0% 96%;
   --secondary-foreground: 0 0% 9%;
-  --muted: 263 6% 91%;
-  --muted-foreground: 0 0% 40%;
-  --accent: 263 12% 92%;
+  
+  /* Muted - Subtle gray */
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  
+  /* Accent - Very light blue tint for subtle highlights */
+  --accent: 210 40% 96%;
   --accent-foreground: 0 0% 9%;
-  --destructive: 0 72% 45%;
-  --destructive-foreground: 0 0% 98%;
-  --input: 0 0% 75%;
-  --ring: 263 70% 50%;
-  --chart-1: 263 70% 45%;
-  --chart-2: 220 70% 45%;
-  --chart-3: 173 58% 35%;
-  --chart-4: 30 80% 45%;
-  --chart-5: 340 75% 45%;
-  --font-sans: Inter, IBM Plex Sans, system-ui, sans-serif;
+  
+  /* Destructive - Clean red */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  
+  /* Input */
+  --input: 0 0% 85%;
+  --ring: 0 0% 9%;
+  
+  /* Charts - Vercel-inspired palette */
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+  
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: .5rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 2px 4px -1px hsl(0 0% 0% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 4px 6px -1px hsl(0 0% 0% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 8px 10px -1px hsl(0 0% 0% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
-  --tracking-normal: 0em;
+  --font-mono: 'Geist Mono', 'SF Mono', Menlo, monospace;
+  
+  /* Spacing & Radius */
+  --radius: 0.5rem;
   --spacing: 0.25rem;
+  --tracking-normal: -0.01em;
+  
+  /* Shadows - Subtle and clean */
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 
-/* Fallback for older browsers */
+  /* Border fallbacks */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE BASE - Default and Maya dark theme */
+/* DARK MODE - Vercel Dark (Default) */
 .dark {
   --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-  --background: 260 6% 8%;
-  --foreground: 0 0% 95%;
-  --border: 260 5% 18%;
-  --card: 260 6% 10%;
-  --card-foreground: 0 0% 95%;
-  --card-border: 260 5% 13%;
-  --sidebar: 260 6% 12%;
-  --sidebar-foreground: 0 0% 95%;
-  --sidebar-border: 260 5% 16%;
-  --sidebar-primary: 280 69% 36%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 280 15% 18%;
-  --sidebar-accent-foreground: 0 0% 95%;
-  --sidebar-ring: 280 69% 36%;
-  --popover: 260 6% 14%;
-  --popover-foreground: 0 0% 95%;
-  --popover-border: 260 5% 18%;
-  --primary: 280 69% 36%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 260 6% 16%;
-  --secondary-foreground: 0 0% 95%;
-  --muted: 263 8% 16%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 263 10% 15%;
-  --accent-foreground: 0 0% 95%;
-  --destructive: 0 72% 45%;
-  --destructive-foreground: 0 0% 98%;
-  --input: 260 5% 30%;
-  --ring: 263 70% 55%;
-  --chart-1: 263 70% 65%;
-  --chart-2: 220 70% 65%;
-  --chart-3: 173 58% 55%;
-  --chart-4: 30 80% 60%;
+  --badge-outline: rgba(255,255,255, .06);
+  --opaque-button-border-intensity: 8;
+  --elevate-1: rgba(255,255,255, .03);
+  --elevate-2: rgba(255,255,255, .07);
+  
+  /* Core colors - True black and white */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 93%;
+  --border: 0 0% 15%;
+  
+  /* Card - Subtle dark */
+  --card: 0 0% 4%;
+  --card-foreground: 0 0% 93%;
+  --card-border: 0 0% 12%;
+  
+  /* Sidebar */
+  --sidebar: 0 0% 0%;
+  --sidebar-foreground: 0 0% 93%;
+  --sidebar-border: 0 0% 15%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 0 0% 10%;
+  --sidebar-accent-foreground: 0 0% 93%;
+  --sidebar-ring: 0 0% 100%;
+  
+  /* Popover */
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 93%;
+  --popover-border: 0 0% 15%;
+  
+  /* Primary - Pure white for Vercel dark style */
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  
+  /* Secondary */
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 93%;
+  
+  /* Muted */
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 55%;
+  
+  /* Accent */
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 93%;
+  
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  
+  /* Input */
+  --input: 0 0% 20%;
+  --ring: 0 0% 100%;
+  
+  /* Charts */
+  --chart-1: 220 70% 60%;
+  --chart-2: 160 60% 55%;
+  --chart-3: 30 80% 60%;
+  --chart-4: 280 65% 65%;
   --chart-5: 340 75% 60%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 2px 4px -1px hsl(0 0% 0% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 4px 6px -1px hsl(0 0% 0% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 8px 10px -1px hsl(0 0% 0% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
+  
+  /* Shadows for dark mode */
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 
-/* Fallback for older browsers */
+  /* Border fallbacks */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }

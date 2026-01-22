@@ -35,26 +35,21 @@ export default function AnnouncementCard({
 
   return (
     <Card 
-      className="card-hover-lift cursor-pointer group" 
+      className="cursor-pointer group border-border/50 hover-elevate" 
       data-testid="card-announcement"
       onClick={onReadMore}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <Bell className="h-5 w-5 text-primary icon-hover-bounce" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
+            <Bell className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg leading-tight mb-1">{title}</h3>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {authorName}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {createdAt}
-              </span>
+            <h3 className="font-medium text-base leading-tight mb-1.5">{title}</h3>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>{authorName}</span>
+              <span className="text-border">•</span>
+              <span>{createdAt}</span>
             </div>
           </div>
         </div>
@@ -68,20 +63,21 @@ export default function AnnouncementCard({
             target="_blank" 
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs text-foreground hover:underline"
             data-testid="link-download-attachment"
           >
-            <FileText className="h-4 w-4" />
+            <FileText className="h-3.5 w-3.5" />
             {getAttachmentLabel()}
             <Download className="h-3 w-3" />
           </a>
         )}
       </CardContent>
       {content.length > 200 && (
-        <CardFooter>
+        <CardFooter className="pt-0">
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="sm"
+            className="text-xs"
             data-testid="button-read-more"
           >
             Detayları Gör

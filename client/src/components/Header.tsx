@@ -56,24 +56,24 @@ export default function Header({
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 lg:px-6">
-        <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-2 transition-all">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex h-14 items-center justify-between gap-6">
+          <Link href="/" className="flex items-center gap-3 rounded-md px-2 py-1.5 hover-elevate overflow-visible">
             <img 
               src={mayaLogo} 
               alt="Maya Okulları" 
-              className="h-8 w-8 object-contain"
+              className="h-7 w-7 object-contain"
             />
-            <div className="flex flex-col">
-              <span className="text-lg font-bold leading-none">
-                <span className="text-primary">Maya</span> Meclisi
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-semibold tracking-tight">
+                Maya Meclisi
               </span>
-              <span className="text-xs text-muted-foreground leading-none mt-0.5">Öğrenci Portalı</span>
+              <span className="hidden sm:inline-flex text-xs text-muted-foreground border border-border/60 rounded px-1.5 py-0.5">Portal</span>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-0.5">
             {navItems
               .filter((item) => {
                 if (item.adminOnly && userRole !== "admin") return false;
@@ -86,11 +86,12 @@ export default function Header({
                 return (
                   <Link key={item.path} href={item.path}>
                     <Button
-                      variant="ghost"
-                      className={isActive ? "bg-accent" : ""}
+                      variant={isActive ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`text-sm font-medium ${!isActive ? "text-muted-foreground" : ""}`}
                       data-testid={`nav-${item.label.toLowerCase()}`}
                     >
-                      <Icon className="h-4 w-4 mr-2" />
+                      <Icon className="h-4 w-4 mr-1.5" />
                       {item.label}
                     </Button>
                   </Link>
@@ -98,49 +99,49 @@ export default function Header({
               })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <ThemeSwitcher />
             {isAuthenticated && <NotificationBell />}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-profile">
-                    <Avatar className="h-8 w-8">
+                  <Button variant="ghost" size="icon" className="rounded-full ml-1" data-testid="button-profile">
+                    <Avatar className="h-8 w-8 border border-border/60">
                       {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
-                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center gap-2 p-2">
-                    <Avatar className="h-8 w-8">
+                <DropdownMenuContent align="end" className="w-56 mt-1">
+                  <div className="flex items-center gap-3 p-3">
+                    <Avatar className="h-9 w-9 border border-border/60">
                       {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
-                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium">{userName}</span>
                       <span className="text-xs text-muted-foreground capitalize">{userRole}</span>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <Link href="/profil">
-                    <DropdownMenuItem data-testid="link-profile">
+                    <DropdownMenuItem data-testid="link-profile" className="cursor-pointer">
                       <User className="h-4 w-4 mr-2" />
                       Profil Ayarları
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/aktiviteler">
-                    <DropdownMenuItem data-testid="link-activities">
+                    <DropdownMenuItem data-testid="link-activities" className="cursor-pointer">
                       <History className="h-4 w-4 mr-2" />
                       Aktivite Geçmişi
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} data-testid="button-logout">
+                  <DropdownMenuItem onClick={onLogout} data-testid="button-logout" className="cursor-pointer text-destructive focus:text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
                     Çıkış Yap
                   </DropdownMenuItem>
@@ -148,7 +149,7 @@ export default function Header({
               </DropdownMenu>
             ) : (
               <Link href="/giris">
-                <Button variant="default" data-testid="button-login">
+                <Button size="sm" data-testid="button-login" className="ml-2">
                   Giriş Yap
                 </Button>
               </Link>
@@ -156,7 +157,7 @@ export default function Header({
           </div>
         </div>
 
-        <nav className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
+        <nav className="md:hidden flex items-center gap-0.5 pb-2 overflow-x-auto scrollbar-none">
           {navItems
             .filter((item) => {
               if (item.adminOnly && userRole !== "admin") return false;
@@ -169,12 +170,12 @@ export default function Header({
               return (
                 <Link key={item.path} href={item.path}>
                   <Button
-                    variant="ghost"
+                    variant={isActive ? "secondary" : "ghost"}
                     size="sm"
-                    className={isActive ? "bg-accent" : ""}
+                    className={`text-xs whitespace-nowrap ${!isActive ? "text-muted-foreground" : ""}`}
                     data-testid={`nav-mobile-${item.label.toLowerCase()}`}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className="h-3.5 w-3.5 mr-1" />
                     {item.label}
                   </Button>
                 </Link>

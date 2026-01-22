@@ -35,10 +35,12 @@ Preferred communication style: Simple, everyday language.
 - No global state management library (Redux/Zustand) - relies on server components pattern
 
 **UI Component Library**: shadcn/ui (Radix UI primitives) with Tailwind CSS
-- Consistent design system using Material Design 3 principles
-- Dark-first theme with deep purple-blue aesthetic
-- Turkish typography support (Inter/IBM Plex Sans fonts)
+- **Vercel-style design system**: Clean, minimal, professional aesthetic
+- Dark-first theme with true black (#000) background and neutral grays
+- Light mode with pure white background and black primary
+- Inter font for clean typography
 - Responsive mobile-first layout
+- Uses `hover-elevate` utility for card interactions (no custom hover colors)
 
 **Form Handling**: React Hook Form with Zod validation for type-safe form schemas
 
