@@ -61,15 +61,13 @@ export default function Header({
         <div className="flex h-14 items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-              <img 
-                src={mayaLogo} 
-                alt="Maya Okulları" 
-                className="h-5 w-5 object-contain"
-              />
-            </div>
+            <img 
+              src={mayaLogo} 
+              alt="Maya Okulları" 
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-base font-semibold tracking-tight">
-              Maya Meclisi
+              Maya <span className="text-primary">Meclisi</span>
             </span>
           </Link>
 
