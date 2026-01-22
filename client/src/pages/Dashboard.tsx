@@ -6,6 +6,7 @@ import AnnouncementCard from "@/components/AnnouncementCard";
 import PollCard from "@/components/PollCard";
 import IdeaCard from "@/components/IdeaCard";
 import EmptyState from "@/components/EmptyState";
+import { AnimatedSection, AnimatedList, GlowPulse } from "@/components/AnimatedSection";
 import { Bell, Plus, Loader2, MessageSquare, Send, FileText, Download, ArrowRight, Reply, X, MoreVertical, Pencil, Trash2, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -176,16 +177,16 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8">
-      <div className="mb-10">
+      <AnimatedSection animation="blur-in" className="mb-10">
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
           Hoş Geldiniz
         </h1>
         <p className="text-muted-foreground">Duyurular, oylamalar ve fikirlerle okul meclisine katılın</p>
-      </div>
+      </AnimatedSection>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <div>
+          <AnimatedSection animation="fade-in-up" delay={100}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                 Son Duyurular
@@ -201,7 +202,11 @@ export default function Dashboard() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : recentAnnouncements && recentAnnouncements.length > 0 ? (
-              <div className="space-y-4">
+              <AnimatedList 
+                className="space-y-4" 
+                animation="fade-in-left"
+                staggerDelay={100}
+              >
                 {recentAnnouncements.map((announcement) => {
                   const authorName = announcement.author
                     ? `${announcement.author.first_name || ""} ${announcement.author.last_name || ""}`.trim()
@@ -219,7 +224,7 @@ export default function Dashboard() {
                     />
                   );
                 })}
-              </div>
+              </AnimatedList>
             ) : (
               <EmptyState
                 icon={Bell}
@@ -227,9 +232,9 @@ export default function Dashboard() {
                 description="İlk duyuru eklendiğinde burada görünecek."
               />
             )}
-          </div>
+          </AnimatedSection>
 
-          <div>
+          <AnimatedSection animation="fade-in-up" delay={200}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Son Fikirler</h2>
               <Link href="/fikirler">
@@ -243,7 +248,11 @@ export default function Dashboard() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : recentIdeas && recentIdeas.length > 0 ? (
-              <div className="space-y-4">
+              <AnimatedList 
+                className="space-y-4" 
+                animation="fade-in-left"
+                staggerDelay={100}
+              >
                 {recentIdeas.map((idea: any) => {
                   const authorName = idea.author
                     ? `${idea.author.first_name || ""} ${idea.author.last_name || ""}`.trim()
@@ -270,7 +279,7 @@ export default function Dashboard() {
                     />
                   );
                 })}
-              </div>
+              </AnimatedList>
             ) : (
               <EmptyState
                 icon={Bell}
@@ -278,15 +287,15 @@ export default function Dashboard() {
                 description="İlk fikir paylaşıldığında burada görünecek."
               />
             )}
-          </div>
+          </AnimatedSection>
         </div>
 
-        <div className="space-y-6">
+        <AnimatedSection animation="fade-in-right" delay={150} className="space-y-6">
           {activePoll && (
-            <div>
+            <GlowPulse active={true}>
               <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider mb-4">Aktif Oylama</h2>
               <PollDisplay poll={activePoll} onVote={voteMutation.mutate} />
-            </div>
+            </GlowPulse>
           )}
 
           <div className="rounded-lg border border-border/50 p-5">
@@ -301,7 +310,7 @@ export default function Dashboard() {
               </Button>
             </Link>
           </div>
-        </div>
+        </AnimatedSection>
       </div>
 
       {/* Announcement Detail Dialog */}
