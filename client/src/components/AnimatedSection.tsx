@@ -42,11 +42,14 @@ export function AnimatedSection({
   animation = 'fade-in-up',
   delay = 0
 }: AnimatedSectionProps) {
-  const { ref, isInView } = useInView<HTMLDivElement>({ threshold: 0.1 });
+  const { ref, isInView, wasInitiallyVisible } = useInView<HTMLDivElement>({ 
+    threshold: 0.1,
+    skipInitiallyVisible: true 
+  });
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  // Skip animations if user prefers reduced motion
-  if (prefersReducedMotion) {
+  // Skip animations if user prefers reduced motion OR if element was visible on page load
+  if (prefersReducedMotion || wasInitiallyVisible) {
     return <div className={className}>{children}</div>;
   }
 
@@ -79,14 +82,17 @@ export function AnimatedList({
   animation = 'fade-in-up',
   staggerDelay = 50
 }: AnimatedListProps) {
-  const { ref, isInView } = useInView<HTMLDivElement>({ threshold: 0.1 });
+  const { ref, isInView, wasInitiallyVisible } = useInView<HTMLDivElement>({ 
+    threshold: 0.1,
+    skipInitiallyVisible: true 
+  });
   const prefersReducedMotion = usePrefersReducedMotion();
   
   // Normalize children to array
   const childArray = Children.toArray(children);
 
-  // Skip animations if user prefers reduced motion
-  if (prefersReducedMotion) {
+  // Skip animations if user prefers reduced motion OR if element was visible on page load
+  if (prefersReducedMotion || wasInitiallyVisible) {
     return (
       <div className={className}>
         {childArray.map((child, index) => (

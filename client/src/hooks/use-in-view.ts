@@ -4,15 +4,23 @@ interface UseInViewOptions {
   threshold?: number;
   rootMargin?: string;
   triggerOnce?: boolean;
+  skipInitiallyVisible?: boolean; // Skip animation for elements visible on page load
 }
 
 export function useInView<T extends HTMLElement = HTMLElement>(
   options: UseInViewOptions = {}
 ) {
-  const { threshold = 0.1, rootMargin = '0px', triggerOnce = true } = options;
+  const { 
+    threshold = 0.1, 
+    rootMargin = '0px', 
+    triggerOnce = true,
+    skipInitiallyVisible = true 
+  } = options;
   const ref = useRef<T>(null);
   const [isInView, setIsInView] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [wasInitiallyVisible, setWasInitiallyVisible] = useState(false);
+  const initialCheckDone = useRef(false);
 
   useEffect(() => {
     const element = ref.current;
@@ -20,6 +28,21 @@ export function useInView<T extends HTMLElement = HTMLElement>(
 
     // Skip if already animated and triggerOnce is true
     if (triggerOnce && hasAnimated) return;
+
+    // Check if element is initially visible in viewport on first mount
+    if (!initialCheckDone.current && skipInitiallyVisible) {
+      initialCheckDone.current = true;
+      const rect = element.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      
+      // Element is considered "initially visible" if its top is within viewport
+      if (rect.top < windowHeight && rect.bottom > 0) {
+        setWasInitiallyVisible(true);
+        setIsInView(true);
+        setHasAnimated(true);
+        return; // Skip observer setup
+      }
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -41,9 +64,9 @@ export function useInView<T extends HTMLElement = HTMLElement>(
     return () => {
       observer.unobserve(element);
     };
-  }, [threshold, rootMargin, triggerOnce, hasAnimated]);
+  }, [threshold, rootMargin, triggerOnce, hasAnimated, skipInitiallyVisible]);
 
-  return { ref, isInView, hasAnimated };
+  return { ref, isInView, hasAnimated, wasInitiallyVisible };
 }
 
 // Hook for staggered animations on multiple elements
