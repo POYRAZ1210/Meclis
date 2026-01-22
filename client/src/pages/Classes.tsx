@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Users, Loader2 } from "lucide-react";
+import { AnimatedSection } from "@/components/AnimatedSection";
 import EmptyState from "@/components/EmptyState";
 import { getProfiles, getClassNames } from "@/lib/api/profiles";
 
@@ -47,10 +48,10 @@ export default function Classes() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8">
+      <AnimatedSection animation="fade-in-up" className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Sınıflar</h1>
         <p className="text-muted-foreground">Öğrenci listelerini sınıflara göre görüntüleyin</p>
-      </div>
+      </AnimatedSection>
 
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">

@@ -77,7 +77,7 @@ export function AnimatedList({
   className = '',
   itemClassName = '',
   animation = 'fade-in-up',
-  staggerDelay = 100
+  staggerDelay = 50
 }: AnimatedListProps) {
   const { ref, isInView } = useInView<HTMLDivElement>({ threshold: 0.1 });
   const prefersReducedMotion = usePrefersReducedMotion();

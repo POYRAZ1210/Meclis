@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Dashboard from "@/pages/Dashboard";
 import Announcements from "@/pages/Announcements";
 import Bluten from "@/pages/Bluten";
@@ -57,6 +58,7 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-background">
+      <ScrollToTop />
       <Header
         isAuthenticated={isAuthenticated}
         userRole={userRole}

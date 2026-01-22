@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import PollCard from "@/components/PollCard";
 import EmptyState from "@/components/EmptyState";
+import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { BarChart3, Plus, Loader2, X } from "lucide-react";
 import { getPolls, getUserVote, votePoll, createPoll, type Poll } from "@/lib/api/polls";
 import { queryClient } from "@/lib/queryClient";
@@ -122,7 +123,7 @@ export default function Polls() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8">
+      <AnimatedSection animation="fade-in-up" className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">Oylamalar</h1>
@@ -135,14 +136,14 @@ export default function Polls() {
             </Button>
           )}
         </div>
-      </div>
+      </AnimatedSection>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : polls && polls.length > 0 ? (
-        <div className="grid md:grid-cols-2 gap-6">
+        <AnimatedList className="grid md:grid-cols-2 gap-6" animation="scale-in">
           {polls.map((poll) => (
             <PollDisplay
               key={poll.id}
@@ -150,7 +151,7 @@ export default function Polls() {
               onVote={(optionId) => voteMutation.mutate({ pollId: poll.id, optionId })}
             />
           ))}
-        </div>
+        </AnimatedList>
       ) : (
         <EmptyState
           icon={BarChart3}

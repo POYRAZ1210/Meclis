@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Heart, MessageCircle, Send, Lightbulb, Image, Video, ChevronDown, ChevronUp, FileText, Download, Trophy, Clock, Pencil, Trash2, MoreVertical, Reply, X, EyeOff, Search, Filter, ArrowUpDown } from "lucide-react";
+import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -287,7 +288,7 @@ export default function Ideas() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8 max-w-3xl">
-      <div className="mb-8 flex items-center justify-between">
+      <AnimatedSection animation="fade-in-up" className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Fikirler</h1>
           <p className="text-muted-foreground">Öğrenci fikirlerini keşfedin ve paylaşın</p>
@@ -403,7 +404,7 @@ export default function Ideas() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </AnimatedSection>
 
       {/* Search and Filter */}
       <div className="mb-6 flex flex-col sm:flex-row gap-3">

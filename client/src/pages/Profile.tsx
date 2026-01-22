@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, User, Mail, Lock, Upload, Image as ImageIcon, Palette, Sun, Moon, Sparkles, GraduationCap } from "lucide-react";
+import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -179,10 +180,10 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8 max-w-3xl">
-      <div className="mb-8">
+      <AnimatedSection animation="fade-in-up" className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Profil Ayarları</h1>
         <p className="text-muted-foreground">Hesap bilgilerinizi yönetin</p>
-      </div>
+      </AnimatedSection>
 
       <div className="space-y-6">
         {/* Profile Picture */}

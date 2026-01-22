@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import EmptyState from "@/components/EmptyState";
+import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { Bell, Plus, Search, Loader2, FileText, Download, MoreVertical, Pencil, Trash2, Reply, X, EyeOff } from "lucide-react";
 import {
   Dialog,
@@ -191,7 +192,7 @@ export default function Announcements() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8">
+      <AnimatedSection animation="fade-in-up" className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">Duyurular</h1>
@@ -215,7 +216,7 @@ export default function Announcements() {
             data-testid="input-search-announcements"
           />
         </div>
-      </div>
+      </AnimatedSection>
 
       {isLoading ? (
         <div className="flex justify-center py-12">

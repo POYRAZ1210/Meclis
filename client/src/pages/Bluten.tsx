@@ -5,6 +5,7 @@ import { Plus, Image as ImageIcon, Loader2, Instagram, ExternalLink } from "luci
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import EmptyState from "@/components/EmptyState";
+import { AnimatedSection, AnimatedList } from "@/components/AnimatedSection";
 import { getBlutenPosts, type BlutenPost } from "@/lib/api/bluten";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
@@ -24,7 +25,7 @@ export default function Bluten() {
 
   return (
     <div className="container mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-8">
+      <AnimatedSection animation="fade-in-up" className="mb-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
@@ -42,7 +43,7 @@ export default function Bluten() {
             </Button>
           )}
         </div>
-      </div>
+      </AnimatedSection>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -68,7 +69,7 @@ export default function Bluten() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover:bg-gray-100 transition-colors"
+                          className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full hover-elevate"
                           data-testid={`button-instagram-${post.id}`}
                         >
                           <Instagram className="h-4 w-4" />
