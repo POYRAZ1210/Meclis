@@ -56,24 +56,25 @@ export default function Header({
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex h-14 items-center justify-between gap-6">
-          <Link href="/" className="flex items-center gap-3 rounded-md px-2 py-1.5 hover-elevate overflow-visible">
-            <img 
-              src={mayaLogo} 
-              alt="Maya Okulları" 
-              className="h-7 w-7 object-contain"
-            />
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-semibold tracking-tight">
-                Maya Meclisi
-              </span>
-              <span className="hidden sm:inline-flex text-xs text-muted-foreground border border-border/60 rounded px-1.5 py-0.5">Portal</span>
+        <div className="flex h-14 items-center justify-between gap-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+              <img 
+                src={mayaLogo} 
+                alt="Maya Okulları" 
+                className="h-5 w-5 object-contain"
+              />
             </div>
+            <span className="text-base font-semibold tracking-tight">
+              Maya Meclisi
+            </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-0.5">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
             {navItems
               .filter((item) => {
                 if (item.adminOnly && userRole !== "admin") return false;
@@ -86,12 +87,16 @@ export default function Header({
                 return (
                   <Link key={item.path} href={item.path}>
                     <Button
-                      variant={isActive ? "secondary" : "ghost"}
+                      variant="ghost"
                       size="sm"
-                      className={`text-sm font-medium ${!isActive ? "text-muted-foreground" : ""}`}
+                      className={`text-sm font-medium gap-1.5 ${
+                        isActive 
+                          ? "text-foreground bg-accent" 
+                          : "text-muted-foreground"
+                      }`}
                       data-testid={`nav-${item.label.toLowerCase()}`}
                     >
-                      <Icon className="h-4 w-4 mr-1.5" />
+                      <Icon className="h-4 w-4" />
                       {item.label}
                     </Button>
                   </Link>
@@ -99,57 +104,67 @@ export default function Header({
               })}
           </nav>
 
-          <div className="flex items-center gap-1">
+          {/* Right side */}
+          <div className="flex items-center gap-2">
             <ThemeSwitcher />
             {isAuthenticated && <NotificationBell />}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full ml-1" data-testid="button-profile">
-                    <Avatar className="h-8 w-8 border border-border/60">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full" 
+                    data-testid="button-profile"
+                  >
+                    <Avatar className="h-8 w-8 ring-2 ring-border/50">
                       {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
-                      <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 mt-1">
+                <DropdownMenuContent align="end" className="w-56 mt-2">
                   <div className="flex items-center gap-3 p-3">
-                    <Avatar className="h-9 w-9 border border-border/60">
+                    <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                       {showProfilePicture && <AvatarImage src={profilePictureUrl} alt={userName} />}
-                      <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col">
                       <span className="text-sm font-medium">{userName}</span>
                       <span className="text-xs text-muted-foreground capitalize">{userRole}</span>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <Link href="/profil">
-                    <DropdownMenuItem data-testid="link-profile" className="cursor-pointer">
-                      <User className="h-4 w-4 mr-2" />
+                    <DropdownMenuItem data-testid="link-profile" className="cursor-pointer gap-2">
+                      <User className="h-4 w-4" />
                       Profil Ayarları
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/aktiviteler">
-                    <DropdownMenuItem data-testid="link-activities" className="cursor-pointer">
-                      <History className="h-4 w-4 mr-2" />
+                    <DropdownMenuItem data-testid="link-activities" className="cursor-pointer gap-2">
+                      <History className="h-4 w-4" />
                       Aktivite Geçmişi
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} data-testid="button-logout" className="cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" />
+                  <DropdownMenuItem 
+                    onClick={onLogout} 
+                    data-testid="button-logout" 
+                    className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
                     Çıkış Yap
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Link href="/giris">
-                <Button size="sm" data-testid="button-login" className="ml-2">
+                <Button size="sm" data-testid="button-login">
                   Giriş Yap
                 </Button>
               </Link>
@@ -157,7 +172,8 @@ export default function Header({
           </div>
         </div>
 
-        <nav className="md:hidden flex items-center gap-0.5 pb-2 overflow-x-auto scrollbar-none">
+        {/* Mobile Navigation */}
+        <nav className="md:hidden flex items-center gap-1 pb-2 overflow-x-auto scrollbar-none -mx-1 px-1">
           {navItems
             .filter((item) => {
               if (item.adminOnly && userRole !== "admin") return false;
@@ -170,12 +186,16 @@ export default function Header({
               return (
                 <Link key={item.path} href={item.path}>
                   <Button
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant="ghost"
                     size="sm"
-                    className={`text-xs whitespace-nowrap ${!isActive ? "text-muted-foreground" : ""}`}
+                    className={`text-xs whitespace-nowrap gap-1 ${
+                      isActive 
+                        ? "text-foreground bg-accent" 
+                        : "text-muted-foreground"
+                    }`}
                     data-testid={`nav-mobile-${item.label.toLowerCase()}`}
                   >
-                    <Icon className="h-3.5 w-3.5 mr-1" />
+                    <Icon className="h-3.5 w-3.5" />
                     {item.label}
                   </Button>
                 </Link>

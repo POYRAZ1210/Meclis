@@ -67,8 +67,8 @@ export default function PollCard({
     <Card className="group border-border/50" data-testid="card-poll">
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+            <BarChart3 className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-base leading-tight">{question}</h3>
@@ -99,8 +99,8 @@ export default function PollCard({
           </>
         ) : hasVoted && !resultsPublished ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
             <div className="text-center space-y-1">
               <p className="font-medium text-lg">Oyunuz Kaydedildi!</p>
@@ -137,7 +137,7 @@ export default function PollCard({
               </>
             )}
             {!isOpen && (
-              <p className="text-sm text-yellow-500 mt-4">
+              <p className="text-sm text-muted-foreground mt-4">
                 Bu oylama kapatılmıştır. Sonuçlar henüz yayınlanmadı.
               </p>
             )}
@@ -166,8 +166,8 @@ export default function PollCard({
               <Users className="h-3 w-3" />
               <span>Toplam {totalVotes} kişi oy verdi</span>
             </div>
-            <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-              ✓ Sonuçlar yayınlandı
+            <p className="text-sm text-primary font-medium">
+              Sonuçlar yayınlandı
             </p>
           </>
         ) : null}

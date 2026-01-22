@@ -45,8 +45,8 @@ export default function IdeaCard({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
-              <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+              <Lightbulb className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-base leading-tight mb-1.5">{title}</h3>

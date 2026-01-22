@@ -177,17 +177,17 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8">
       <div className="mb-10">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
           Hoş Geldiniz
         </h1>
-        <p className="text-muted-foreground text-sm">Maya Meclisi - Öğrenci haberler, oylamalar ve fikirler</p>
+        <p className="text-muted-foreground">Duyurular, oylamalar ve fikirlerle okul meclisine katılın</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                 Son Duyurular
               </h2>
               <Link href="/duyurular">
@@ -231,7 +231,7 @@ export default function Dashboard() {
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-muted-foreground uppercase tracking-wider">Son Fikirler</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Son Fikirler</h2>
               <Link href="/fikirler">
                 <Button variant="ghost" size="sm" className="text-xs" data-testid="link-all-ideas">
                   Tümünü Gör

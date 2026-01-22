@@ -35,12 +35,14 @@ Preferred communication style: Simple, everyday language.
 - No global state management library (Redux/Zustand) - relies on server components pattern
 
 **UI Component Library**: shadcn/ui (Radix UI primitives) with Tailwind CSS
-- **Vercel-style design system**: Clean, minimal, professional aesthetic
-- Dark-first theme with true black (#000) background and neutral grays
-- Light mode with pure white background and black primary
-- Inter font for clean typography
-- Responsive mobile-first layout
-- Uses `hover-elevate` utility for card interactions (no custom hover colors)
+- **Linear-style design system**: Sleek, dark, professional with purple accents
+- Dark theme with deep navy/charcoal background (HSL 222 47% 5%)
+- Purple/violet primary color (HSL 262 83% 58%) for accents and CTAs
+- Glass effects and subtle gradients for cards and overlays
+- Inter font with tight tracking for modern typography
+- Responsive mobile-first layout with smooth transitions
+- Uses `hover-elevate` utility for card interactions
+- Colored icon containers (primary/amber/blue) for visual hierarchy
 
 **Form Handling**: React Hook Form with Zod validation for type-safe form schemas
 
